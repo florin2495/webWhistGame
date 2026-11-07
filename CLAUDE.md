@@ -19,7 +19,7 @@ so this list is the source of truth. **Update it whenever the user confirms a mi
 | Migration | Applied to the live DB | Notes |
 | --- | --- | --- |
 | `supabase/schema.sql` (initial) | yes (2026-11-07, verified: service role 200, anon 42501) | `whist_rooms`, `whist_players` |
-| `supabase/migrations/001_pending_kick.sql` | **not yet applied** | `whist_players.kick_requested_at` (kick during a game waits 10 s, can be ignored). Do not push before it is applied |
+| `supabase/migrations/001_pending_kick.sql` | yes (2026-11-07, verified) | `whist_players.kick_requested_at` (kick during a game waits 10 s, can be ignored). Do not push before it is applied |
 
 Rules for schema changes:
 - Every object of this game is prefixed `whist_` (tables, constraints, indexes). Table names live in `T`
