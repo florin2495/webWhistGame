@@ -5,7 +5,7 @@
 ## Accounts and deploy
 - GitHub: personal account **florin2495** only (repo `florin2495/webWhistGame`, private). Never the work account.
   Local git identity is pinned in `.git/config`.
-- Vercel project is connected by hand by the user; production domain: https://whist.hailatat.icu
+- Vercel project is connected by hand by the user; served at https://games.hailatat.icu/whist (`basePath`; the hub proxies it to web-whist-game.vercel.app)
 - Functions run in `fra1` (Frankfurt, `vercel.json`), next to the Supabase DB.
 - Feedback (`POST /api/feedback`) writes to `hub_feedback` (owned by florin2495/hailataticu-hub, slug `whist`).
 - Ask the user before pushing (= deploying), unless they explicitly say to deploy.
