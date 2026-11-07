@@ -17,6 +17,12 @@ export const metadata: Metadata = {
   applicationName: "Whist",
   appleWebApp: { capable: true, title: "Whist", statusBarStyle: "default" },
   other: { "apple-mobile-web-app-capable": "yes" },
+  // Explicit instead of app/apple-icon.tsx: the file convention emitted "/apple-icon" without the basePath.
+  // Setting icons drops the file-based favicon link, so it is listed here too.
+  icons: {
+    icon: { url: `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/favicon.ico`, sizes: "48x48", type: "image/x-icon" },
+    apple: { url: `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/icons/touch-icon-180.png`, sizes: "180x180", type: "image/png" },
+  },
   description: "Whist românesc (1-8-1) între prieteni, pe telefon. 3-4 jucători.",
 };
 

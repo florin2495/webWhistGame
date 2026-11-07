@@ -41,7 +41,7 @@ export function FeedbackButton({ compact = false }: { compact?: boolean }) {
     setBusy(true);
     setError("");
     try {
-      const res = await fetch("/api/feedback", {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/api/feedback`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message, nickname: nickname ?? "", website }),
@@ -135,7 +135,7 @@ export function FeedbackButton({ compact = false }: { compact?: boolean }) {
                   </Button>
                 </div>
                 <a
-                  href="https://hailatat.icu/feedback"
+                  href="/feedback"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-center text-xs font-semibold text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"

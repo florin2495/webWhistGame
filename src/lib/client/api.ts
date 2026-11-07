@@ -111,6 +111,10 @@ export function deviceId(): string {
   return id;
 }
 
+/** basePath ("/whist"): fetch() is not prefixed by Next, so absolute paths get it here. */
+export const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+export const withBase = (path: string) => (path.startsWith("/") ? `${BASE_PATH}${path}` : path);
+
 export class ApiRequestError extends Error {
   constructor(
     public status: number,
@@ -129,7 +133,7 @@ export async function api<T = { ok: true }>(
   if (opts.body !== undefined) headers["content-type"] = "application/json";
   let res: Response;
   try {
-    res = await fetch(path, {
+    res = await fetch(withBase(path), {
       method: opts.method ?? (opts.body !== undefined ? "POST" : "GET"),
       headers,
       body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
