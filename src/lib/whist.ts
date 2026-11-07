@@ -7,7 +7,7 @@ export const NICKNAME_MAX = 10;
 export const MAX_HAND = 8;
 
 /** Lobby/finished rooms close after this long with nobody having them open. */
-export const ROOM_IDLE_MINUTES = 2;
+export const ROOM_IDLE_MINUTES = 10;
 /** A game in progress that nobody has open closes after this long. */
 export const PLAYING_IDLE_MINUTES = 60;
 /** /state refreshes last_activity_at at most this often, to keep DB writes low. */

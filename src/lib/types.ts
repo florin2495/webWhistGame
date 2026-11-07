@@ -8,6 +8,8 @@ export interface PublicPlayer {
   isHost: boolean;
   /** Milliseconds the player still has to press "Ignoră" on a pending kick; null = no pending kick. */
   kickRemainingMs: number | null;
+  /** Seen in the last 45 s (see lib/reconnect.ts). False = phone in the background, closed tab, no network. */
+  connected: boolean;
 }
 
 /** What a member sees of the running game. Other players' cards are never included. */

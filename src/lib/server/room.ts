@@ -1,5 +1,6 @@
 import "server-only";
 import { kickRemainingMs } from "@/lib/kick";
+import { isConnected, LAST_SEEN_TOUCH_MS } from "@/lib/reconnect";
 import type { PublicGame, PublicPlayer, RoomState } from "@/lib/types";
 import {
   allowedBids,
@@ -43,7 +44,7 @@ export async function getRoomByCode(code: string): Promise<RoomRow> {
   return room;
 }
 
-/** Deletes every idle room (2 min for lobby/finished, 60 min for a game nobody has open). */
+/** Deletes every idle room (10 min for lobby/finished, 60 min for a game nobody has open). */
 export async function cleanupExpiredRooms(): Promise<void> {
   const now = Date.now();
   const short = new Date(now - ROOM_IDLE_MINUTES * 60_000).toISOString();
@@ -91,7 +92,18 @@ export async function requireMember(req: Request, code: string): Promise<{ room:
     .maybeSingle();
   if (error) throw error;
   if (!data) fail(401, "Nu ești în această cameră.");
-  return { room, player: data as PlayerRow };
+  const player = data as PlayerRow;
+  await touchPlayer(player);
+  return { room, player };
+}
+
+/** Presence heartbeat: stamps last_seen_at at most every LAST_SEEN_TOUCH_MS. Best effort, never throws. */
+async function touchPlayer(player: PlayerRow): Promise<void> {
+  const now = Date.now();
+  if (now - Date.parse(player.last_seen_at) < LAST_SEEN_TOUCH_MS) return;
+  player.last_seen_at = new Date(now).toISOString();
+  const { error } = await db().from(T.players).update({ last_seen_at: player.last_seen_at }).eq("id", player.id);
+  if (error) console.error("presence touch failed", error);
 }
 
 export function requireHost(room: RoomRow, player: PlayerRow) {
@@ -156,6 +168,7 @@ const toPublic = (p: PlayerRow, now: number): PublicPlayer => ({
   nickname: p.nickname,
   isHost: p.is_host,
   kickRemainingMs: kickRemainingMs(p.kick_requested_at, now),
+  connected: isConnected(p.last_seen_at, now),
 });
 
 function publicGame(g: StoredGame, meId: string): PublicGame {

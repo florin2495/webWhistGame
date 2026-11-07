@@ -6,6 +6,16 @@ import type { RoomState } from "@/lib/types";
 import { KickBadge } from "./KickCountdown";
 import { ErrorText } from "./ui";
 
+/** Shown next to a player not seen for 45 s (phone in the background, closed tab, no network). */
+export function OfflineBadge({ connected }: { connected: boolean | undefined }) {
+  if (connected !== false) return null;
+  return (
+    <span className="shrink-0 rounded bg-zinc-200 px-1.5 text-[10px] font-semibold uppercase text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
+      deconectat
+    </span>
+  );
+}
+
 /** Host-only "Scoate" button. In a running game the player gets 10 s to press "Ignoră" first. */
 export function KickButton({
   state,
@@ -77,6 +87,7 @@ export function PlayerList({ state, token, refresh }: { state: RoomState; token:
               {p.isHost && (
                 <span className="rounded bg-zinc-200 px-1.5 text-[10px] font-semibold uppercase dark:bg-zinc-800">host</span>
               )}
+              <OfflineBadge connected={p.connected} />
               <KickBadge remainingMs={p.kickRemainingMs} />
             </span>
             {canKick && p.id !== me.id && (

@@ -6,7 +6,7 @@ import { PREF_CONFIRM_PLAY, PREF_VIBRATE, useBoolPref } from "@/lib/client/prefs
 import type { PublicGame, RoomState } from "@/lib/types";
 import { type Card, rankLabel, rankOf, SUIT_NAME, SUIT_SYMBOL, suitOf } from "@/lib/whist";
 import { KickBadge } from "./KickCountdown";
-import { KickButton } from "./PlayerList";
+import { KickButton, OfflineBadge } from "./PlayerList";
 import { PlayingCard, SuitBadge } from "./PlayingCard";
 import { ScoreSheet } from "./ScoreSheet";
 import { Button, Card as Panel, ErrorText } from "./ui";
@@ -206,6 +206,7 @@ function Seats({ g, state, token, refresh }: { g: PublicGame; state: RoomState; 
                     împarte
                   </span>
                 )}
+                <OfflineBadge connected={state.players.find((p) => p.id === g.seats[i])?.connected} />
                 <KickBadge remainingMs={state.players.find((p) => p.id === g.seats[i])?.kickRemainingMs ?? null} />
                 {Math.abs(streak) >= 3 && (
                   <span className="text-[10px] font-semibold text-zinc-500" title="Serie pentru bonus">
