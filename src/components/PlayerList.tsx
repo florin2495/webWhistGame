@@ -30,7 +30,7 @@ export function KickButton({
   async function kick() {
     const text =
       room.status === "playing"
-        ? `Scoți jucătorul ${nickname} din cameră? Are 10 secunde să refuze.`
+        ? `Scoți jucătorul ${nickname} din cameră? Are 10 secunde să refuze; dacă nu, jocul se oprește pentru toți.`
         : `Scoți jucătorul ${nickname} din cameră?`;
     if (!window.confirm(text)) return;
     setBusy(true);
