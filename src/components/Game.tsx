@@ -29,6 +29,8 @@ export function Game({ state, token, refresh }: { state: RoomState; token: strin
   useEffect(() => {
     if (!myTurn || !vibrate || buzzed.current === turnKey) return;
     buzzed.current = turnKey;
+    // Browsers block vibrate until the user has tapped the page once.
+    if (!navigator.userActivation?.hasBeenActive) return;
     try {
       navigator.vibrate?.(120);
     } catch {

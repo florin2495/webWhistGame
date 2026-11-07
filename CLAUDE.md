@@ -18,7 +18,7 @@ so this list is the source of truth. **Update it whenever the user confirms a mi
 
 | Migration | Applied to the live DB | Notes |
 | --- | --- | --- |
-| `supabase/schema.sql` (initial) | no | `whist_rooms`, `whist_players` |
+| `supabase/schema.sql` (initial) | yes (2026-11-07, verified: service role 200, anon 42501) | `whist_rooms`, `whist_players` |
 
 Rules for schema changes:
 - Every object of this game is prefixed `whist_` (tables, constraints, indexes). Table names live in `T`
