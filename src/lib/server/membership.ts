@@ -3,7 +3,7 @@ import { notifyRoom } from "./broadcast";
 import { db, type RoomRow, T } from "./db";
 import { kickCutoffIso } from "@/lib/kick";
 import { ApiError } from "./http";
-import { clearKicks, listPlayers, reloadRoom, saveRoom } from "./room";
+import { listPlayers, reloadRoom, saveRoom } from "./room";
 
 /**
  * Removes a player from a room (used by both "leave" and the host's "kick").
@@ -28,8 +28,6 @@ export async function removePlayer(room: RoomRow, playerId: string, reason: stri
   if (room.status === "playing" && room.game?.seats.includes(playerId)) {
     update.status = "finished";
     update.game = { ...room.game, phase: "over", abortedBy: leaving?.nickname ?? "un jucător" };
-    // The game is over: other pending kicks ("Ignoră ca să rămâi în joc") no longer make sense.
-    await clearKicks(room.id);
   }
 
   // Update the room first so the host never points at a deleted player.

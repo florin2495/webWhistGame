@@ -2,7 +2,7 @@ import "server-only";
 import { type GameState, RuleError } from "@/lib/whist";
 import { notifyRoom } from "./broadcast";
 import { fail, handle, readJson } from "./http";
-import { clearKicks, requireMember, requireStatus, saveRoom } from "./room";
+import { requireMember, requireStatus, saveRoom } from "./room";
 
 /**
  * Shared body of every in-game move (bid, play): authenticates the caller, applies the pure
@@ -36,7 +36,6 @@ export function moveHandler(
       game: { ...next, names: game.names },
       ...(next.phase === "over" ? { status: "finished" as const } : {}),
     });
-    if (next.phase === "over") await clearKicks(room.id); // game finished: pending kicks are moot
     await notifyRoom(room.id, kind);
     return { ok: true };
   });

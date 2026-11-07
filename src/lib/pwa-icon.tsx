@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 
-/** Opaque, font-free app icon: green felt, white card, spade drawn as an SVG path. */
+/** Opaque, font-free app icon: gold background, white card, spade drawn as an SVG path. */
 export function renderIcon(size: number, artScale: number): ImageResponse {
   const art = Math.round(size * artScale);
   const card = Math.round(art * 0.78);
@@ -13,7 +13,7 @@ export function renderIcon(size: number, artScale: number): ImageResponse {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "#14532d",
+          background: "#a16207",
         }}
       >
         <div

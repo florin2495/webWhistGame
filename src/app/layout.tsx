@@ -16,6 +16,7 @@ export const metadata: Metadata = {
   title: "Whist",
   applicationName: "Whist",
   appleWebApp: { capable: true, title: "Whist", statusBarStyle: "default" },
+  other: { "apple-mobile-web-app-capable": "yes" },
   description: "Whist românesc (1-8-1) între prieteni, pe telefon. 3-4 jucători.",
 };
 
