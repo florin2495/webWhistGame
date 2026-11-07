@@ -41,8 +41,11 @@ create table if not exists public.whist_players (
   nickname   text not null constraint whist_players_nickname_check check (char_length(nickname) between 1 and 20),
   token_hash text not null constraint whist_players_token_hash_key unique,
   is_host    boolean not null default false,
-  joined_at  timestamptz not null default now()
+  joined_at  timestamptz not null default now(),
+  kick_requested_at timestamptz                         -- pending kick during a game (null = none), see migrations/001
 );
+-- Existing databases: the line above only applies to a fresh table.
+alter table public.whist_players add column if not exists kick_requested_at timestamptz;
 create unique index if not exists whist_players_room_nickname_uq on public.whist_players (room_id, lower(nickname));
 create index if not exists whist_players_room_idx on public.whist_players (room_id);
 

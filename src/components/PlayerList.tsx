@@ -3,28 +3,66 @@
 import { useState } from "react";
 import { api } from "@/lib/client/api";
 import type { RoomState } from "@/lib/types";
+import { KickBadge } from "./KickCountdown";
 import { ErrorText } from "./ui";
+
+/** Host-only "Scoate" button. In a running game the player gets 10 s to press "Ignoră" first. */
+export function KickButton({
+  state,
+  token,
+  refresh,
+  playerId,
+  nickname,
+  onError,
+}: {
+  state: RoomState;
+  token: string;
+  refresh: () => Promise<void>;
+  playerId: string;
+  nickname: string;
+  onError?: (message: string) => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const { room } = state;
+  const target = state.players.find((p) => p.id === playerId);
+  if (target && target.kickRemainingMs !== null) return null; // already pending: the badge says so
+
+  async function kick() {
+    const text =
+      room.status === "playing"
+        ? `Scoți jucătorul ${nickname} din cameră? Va avea 10 secunde să refuze.`
+        : `Scoți jucătorul ${nickname} din cameră?`;
+    if (!window.confirm(text)) return;
+    setBusy(true);
+    onError?.("");
+    try {
+      await api(`/api/rooms/${room.code}/kick`, { token, body: { playerId } });
+      await refresh();
+    } catch (err) {
+      onError?.(err instanceof Error ? err.message : "Eroare.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => void kick()}
+      disabled={busy}
+      className="min-h-8 shrink-0 rounded-md border border-rose-300 px-2 text-xs font-semibold text-rose-600 disabled:opacity-40 dark:border-rose-800 dark:text-rose-400"
+      aria-label={`Scoate pe ${nickname}`}
+    >
+      {busy ? "…" : "Scoate"}
+    </button>
+  );
+}
 
 /** Lobby list of members, with a "Scoate" (kick) button for the host. */
 export function PlayerList({ state, token, refresh }: { state: RoomState; token: string; refresh: () => Promise<void> }) {
   const { players, me, room } = state;
   const canKick = room.hostPlayerId === me.id;
-  const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState("");
-
-  async function kick(id: string, nickname: string) {
-    if (!window.confirm(`Scoți jucătorul ${nickname} din cameră?`)) return;
-    setBusy(id);
-    setError("");
-    try {
-      await api(`/api/rooms/${room.code}/kick`, { token, body: { playerId: id } });
-      await refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Eroare.");
-    } finally {
-      setBusy(null);
-    }
-  }
 
   return (
     <>
@@ -39,17 +77,10 @@ export function PlayerList({ state, token, refresh }: { state: RoomState; token:
               {p.isHost && (
                 <span className="rounded bg-zinc-200 px-1.5 text-[10px] font-semibold uppercase dark:bg-zinc-800">host</span>
               )}
+              <KickBadge remainingMs={p.kickRemainingMs} />
             </span>
             {canKick && p.id !== me.id && (
-              <button
-                type="button"
-                onClick={() => void kick(p.id, p.nickname)}
-                disabled={busy !== null}
-                className="min-h-8 rounded-md border border-rose-300 px-2 text-xs font-semibold text-rose-600 disabled:opacity-40 dark:border-rose-800 dark:text-rose-400"
-                aria-label={`Scoate pe ${p.nickname}`}
-              >
-                {busy === p.id ? "…" : "Scoate"}
-              </button>
+              <KickButton state={state} token={token} refresh={refresh} playerId={p.id} nickname={p.nickname} onError={setError} />
             )}
           </li>
         ))}

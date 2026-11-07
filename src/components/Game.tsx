@@ -5,6 +5,8 @@ import { api } from "@/lib/client/api";
 import { PREF_CONFIRM_PLAY, PREF_VIBRATE, useBoolPref } from "@/lib/client/prefs";
 import type { PublicGame, RoomState } from "@/lib/types";
 import { type Card, rankLabel, rankOf, SUIT_NAME, SUIT_SYMBOL, suitOf } from "@/lib/whist";
+import { KickBadge } from "./KickCountdown";
+import { KickButton } from "./PlayerList";
 import { PlayingCard, SuitBadge } from "./PlayingCard";
 import { ScoreSheet } from "./ScoreSheet";
 import { Button, Card as Panel, ErrorText } from "./ui";
@@ -97,7 +99,7 @@ export function Game({ state, token, refresh }: { state: RoomState; token: strin
         </div>
       </Panel>
 
-      <Seats g={g} />
+      <Seats g={g} state={state} token={token} refresh={refresh} />
 
       {g.phase !== "over" && <Table g={g} />}
 
@@ -178,7 +180,9 @@ export function Game({ state, token, refresh }: { state: RoomState; token: strin
   );
 }
 
-function Seats({ g }: { g: PublicGame }) {
+function Seats({ g, state, token, refresh }: { g: PublicGame; state: RoomState; token: string; refresh: () => Promise<void> }) {
+  const [kickError, setKickError] = useState("");
+  const canKick = state.room.hostPlayerId === state.me.id && g.phase !== "over";
   const bidsSum = g.bids.reduce<number>((a, b) => a + (b ?? 0), 0);
   const allBid = g.bids.every((b) => b !== null);
   return (
@@ -202,6 +206,7 @@ function Seats({ g }: { g: PublicGame }) {
                     împarte
                   </span>
                 )}
+                <KickBadge remainingMs={state.players.find((p) => p.id === g.seats[i])?.kickRemainingMs ?? null} />
                 {Math.abs(streak) >= 3 && (
                   <span className="text-[10px] font-semibold text-zinc-500" title="Serie pentru bonus">
                     {streak > 0 ? `🔥${streak}` : `❄️${-streak}`}
@@ -215,11 +220,15 @@ function Seats({ g }: { g: PublicGame }) {
                   </span>
                 )}
                 <span className="w-10 text-right font-mono font-bold">{g.scores[i]}</span>
+                {canKick && g.seats[i] !== state.me.id && (
+                  <KickButton state={state} token={token} refresh={refresh} playerId={g.seats[i]} nickname={name} onError={setKickError} />
+                )}
               </span>
             </li>
           );
         })}
       </ul>
+      <ErrorText>{kickError}</ErrorText>
       {g.phase !== "over" && (
         <p className="pt-1 text-right text-[11px] text-zinc-500">
           luat/spus · total spus {bidsSum}

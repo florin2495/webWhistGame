@@ -6,6 +6,8 @@ export interface PublicPlayer {
   id: string;
   nickname: string;
   isHost: boolean;
+  /** Milliseconds the player still has to press "Ignoră" on a pending kick; null = no pending kick. */
+  kickRemainingMs: number | null;
 }
 
 /** What a member sees of the running game. Other players' cards are never included. */

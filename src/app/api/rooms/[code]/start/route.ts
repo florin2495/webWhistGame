@@ -1,6 +1,6 @@
 import { notifyRoom } from "@/lib/server/broadcast";
 import { fail, handle } from "@/lib/server/http";
-import { listPlayers, requireHost, requireMember, requireStatus, saveRoom } from "@/lib/server/room";
+import { clearKicks, listPlayers, requireHost, requireMember, requireStatus, saveRoom } from "@/lib/server/room";
 import { MAX_PLAYERS, MIN_PLAYERS, newGame, seatOrder } from "@/lib/whist";
 
 // POST /api/rooms/[code]/start - host only, 3-4 players. Seats everyone and deals the first hand.
@@ -24,6 +24,7 @@ export async function POST(req: Request, ctx: RouteContext<"/api/rooms/[code]/st
     const names = seats.map((id) => players.find((p) => p.id === id)!.nickname);
     await saveRoom(room, { status: "playing", game: { ...newGame(seats, room.settings), names } });
 
+    await clearKicks(room.id);
     await notifyRoom(room.id, "game_started");
     return { ok: true };
   });

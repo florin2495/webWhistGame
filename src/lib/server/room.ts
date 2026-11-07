@@ -1,4 +1,5 @@
 import "server-only";
+import { kickRemainingMs } from "@/lib/kick";
 import type { PublicGame, PublicPlayer, RoomState } from "@/lib/types";
 import {
   allowedBids,
@@ -19,6 +20,7 @@ import {
 import { hashToken } from "./crypto";
 import { db, PLAYER_COLUMNS, type PlayerRow, ROOM_COLUMNS, type RoomRow, type StoredGame, T } from "./db";
 import { fail } from "./http";
+import { enforceExpiredKicks } from "./membership";
 
 const GONE = `Camera nu există sau a fost închisă după ${minutesLabel(ROOM_IDLE_MINUTES)} de inactivitate.`;
 
@@ -58,11 +60,29 @@ export async function touchRoom(roomId: string): Promise<void> {
   if (error) throw error;
 }
 
+/** Re-reads a room by id; null when it no longer exists (e.g. the last player was removed). */
+export async function reloadRoom(roomId: string): Promise<RoomRow | null> {
+  const { data, error } = await db().from(T.rooms).select(ROOM_COLUMNS).eq("id", roomId).maybeSingle();
+  if (error) throw error;
+  return (data as RoomRow | null) ?? null;
+}
+
+/** Cancels every pending kick in the room (new game, back to the lobby, game over). */
+export async function clearKicks(roomId: string): Promise<void> {
+  const { error } = await db().from(T.players).update({ kick_requested_at: null }).eq("room_id", roomId).not("kick_requested_at", "is", null);
+  if (error) throw error;
+}
+
 /** Resolves the caller from the x-player-token header and checks they belong to the room. */
 export async function requireMember(req: Request, code: string): Promise<{ room: RoomRow; player: PlayerRow }> {
   const token = req.headers.get("x-player-token");
   if (!token || token.length > 200) fail(401, "Nu ești în această cameră.");
-  const room = await getRoomByCode(code);
+  let room = await getRoomByCode(code);
+  // Lazy enforcement of expired pending kicks (no timers on serverless). Runs before the caller's
+  // membership lookup, so a player who was just removed gets the usual 401 below.
+  const after = await enforceExpiredKicks(room);
+  if (!after) fail(404, GONE);
+  room = after;
   const { data, error } = await db()
     .from(T.players)
     .select(PLAYER_COLUMNS)
@@ -131,7 +151,12 @@ export function parseSettings(body: Record<string, unknown>, current: Settings =
   };
 }
 
-const toPublic = (p: PlayerRow): PublicPlayer => ({ id: p.id, nickname: p.nickname, isHost: p.is_host });
+const toPublic = (p: PlayerRow, now: number): PublicPlayer => ({
+  id: p.id,
+  nickname: p.nickname,
+  isHost: p.is_host,
+  kickRemainingMs: kickRemainingMs(p.kick_requested_at, now),
+});
 
 function publicGame(g: StoredGame, meId: string): PublicGame {
   const seat = g.seats.indexOf(meId);
@@ -166,6 +191,7 @@ function publicGame(g: StoredGame, meId: string): PublicGame {
 }
 
 export async function buildState(room: RoomRow, me: PlayerRow): Promise<RoomState> {
+  const now = Date.now();
   const players = await listPlayers(room.id);
   let ordered = players;
   if (room.game) {
@@ -183,8 +209,8 @@ export async function buildState(room: RoomRow, me: PlayerRow): Promise<RoomStat
       hostPlayerId: room.host_player_id,
       settings: room.settings,
     },
-    players: ordered.map(toPublic),
-    me: toPublic(me),
+    players: ordered.map((p) => toPublic(p, now)),
+    me: toPublic(me, now),
     game: room.game ? publicGame(room.game, me.id) : null,
   };
 }
