@@ -5,6 +5,7 @@ import { api } from "@/lib/client/api";
 import { PREF_CONFIRM_PLAY, PREF_VIBRATE, useBoolPref } from "@/lib/client/prefs";
 import type { PublicGame, RoomState } from "@/lib/types";
 import { type Card, rankLabel, rankOf, SUIT_NAME, SUIT_SYMBOL, suitOf } from "@/lib/whist";
+import { tableLayout } from "@/lib/tableLayout";
 import { KickBadge } from "./KickCountdown";
 import { KickButton, OfflineBadge } from "./PlayerList";
 import { PlayingCard, SuitBadge } from "./PlayingCard";
@@ -241,26 +242,69 @@ function Seats({ g, state, token, refresh }: { g: PublicGame; state: RoomState; 
 }
 
 function Table({ g }: { g: PublicGame }) {
+  const n = g.names.length;
+  const layout = tableLayout(n);
   const showingLast = g.trick.length === 0 && g.lastTrick !== null;
   const plays = showingLast ? g.lastTrick!.plays : g.trick;
+  const seatAt = (area: string) => {
+    const rel = layout.areas.indexOf(area);
+    return ((g.mySeat ?? 0) + rel) % n;
+  };
+
+  const tile = (seat: number) => {
+    const played = plays.find((p) => p.seat === seat);
+    const isTurn = g.phase !== "over" && !showingLast && g.turn === seat;
+    const won = showingLast && g.lastTrick!.winner === seat;
+    return (
+      <div
+        className={`flex min-w-0 flex-col items-center gap-0.5 rounded-lg px-1 py-1 ${
+          isTurn ? "bg-indigo-600/80 ring-2 ring-indigo-300" : "bg-emerald-900/60 dark:bg-emerald-900/40"
+        }`}
+      >
+        <span className="flex w-full min-w-0 items-center justify-center gap-1 text-[11px] font-bold leading-tight">
+          <span className="truncate">{g.names[seat]}</span>
+          {seat === g.dealer && g.phase !== "over" && (
+            <span title="A împărțit" className="shrink-0 rounded bg-white/25 px-1 text-[9px] uppercase">
+              D
+            </span>
+          )}
+        </span>
+        <span className="text-[10px] leading-tight text-emerald-100">
+          {g.bids[seat] === null ? "–" : `${g.tricks[seat]}/${g.bids[seat]}`} · {g.cardsLeft[seat]}🂠
+        </span>
+        <span className={`flex h-11 items-center ${showingLast ? "opacity-70" : ""}`}>
+          {played ? <PlayingCard card={played.card} size="xs" highlight={won} /> : <span className="h-11 w-8 rounded-lg border border-dashed border-emerald-200/30" />}
+        </span>
+      </div>
+    );
+  };
+
   return (
-    <section className="rounded-xl bg-emerald-800 p-3 text-white shadow-inner dark:bg-emerald-950">
-      <p className="mb-2 text-center text-xs font-semibold uppercase tracking-wide text-emerald-100">
-        {showingLast ? `Levata trecută: a luat-o ${g.names[g.lastTrick!.winner]}` : g.trick.length ? "Pe masă" : "Masa e goală"}
-      </p>
-      <div className="flex min-h-24 flex-wrap items-end justify-center gap-3">
-        {plays.map((p) => (
-          <div key={p.seat} className={`flex flex-col items-center gap-1 ${showingLast ? "opacity-70" : ""}`}>
-            <PlayingCard card={p.card} highlight={showingLast && p.seat === g.lastTrick!.winner} />
-            <span className="max-w-16 truncate text-[11px] font-semibold">{g.names[p.seat]}</span>
+    <section className="rounded-xl bg-emerald-800 p-2 text-white shadow-inner dark:bg-emerald-950">
+      <div
+        className="grid items-center gap-1.5"
+        style={{
+          gridTemplateColumns: `repeat(${layout.columns}, minmax(0, 1fr))`,
+          gridTemplateAreas: layout.rows.map((r) => `"${r}"`).join(" "),
+        }}
+      >
+        {layout.areas.slice(1).map((area) => (
+          <div key={area} style={{ gridArea: area }} className="min-w-0">
+            {tile(seatAt(area))}
           </div>
         ))}
+        <div style={{ gridArea: "c" }} className="px-1 text-center text-[11px] font-semibold uppercase leading-tight tracking-wide text-emerald-100">
+          {showingLast ? `Levata trecută: ${g.names[g.lastTrick!.winner]}` : g.trick.length ? "Pe masă" : "Masa e goală"}
+          {!showingLast && g.trick.length > 0 && (
+            <span className="mt-1 block normal-case tracking-normal">
+              cer <SuitBadge card={g.trick[0].card} /> {SUIT_NAME[suitOf(g.trick[0].card)]}
+            </span>
+          )}
+        </div>
       </div>
-      {!showingLast && g.trick.length > 0 && (
-        <p className="mt-2 text-center text-xs text-emerald-100">
-          Culoarea cerută: <SuitBadge card={g.trick[0].card} /> {SUIT_NAME[suitOf(g.trick[0].card)]}
-        </p>
-      )}
+      <div className="mt-1.5 flex justify-center">
+        <div className="w-28 min-w-0">{tile(g.mySeat ?? 0)}</div>
+      </div>
     </section>
   );
 }

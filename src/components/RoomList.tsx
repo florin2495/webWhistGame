@@ -72,7 +72,7 @@ export function RoomList({
                   {r.name}
                 </span>
                 <span className="block text-xs text-zinc-500">
-                  {r.settings.sequence} · {r.players}/4{" "}
+                  {r.settings.sequence} · {r.players}/6{" "}
                   {r.players === 1 ? "jucător" : "jucători"}
                 </span>
               </span>

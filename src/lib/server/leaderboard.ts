@@ -2,7 +2,8 @@ import "server-only";
 import { db } from "./db";
 import { isUniqueViolation } from "./http";
 
-const GAME = "whist";
+/** Overridable (LEADERBOARD_GAME) so a local run can report to a throwaway slug instead of polluting the real board. */
+const GAME = process.env.LEADERBOARD_GAME || "whist";
 
 /** player_key = nickname lowercased and trimmed (no accounts: same nickname = same person). */
 export const playerKey = (nickname: string) => nickname.trim().toLowerCase();

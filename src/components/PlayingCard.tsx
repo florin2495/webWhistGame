@@ -3,6 +3,7 @@
 import { type Card, isRed, rankLabel, rankOf, SUIT_SYMBOL, suitOf } from "@/lib/whist";
 
 const SIZES = {
+  xs: "h-11 w-8 text-xs",
   sm: "h-14 w-10 text-sm",
   md: "h-20 w-14 text-lg",
 } as const;
