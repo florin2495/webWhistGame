@@ -1,7 +1,8 @@
 import "server-only";
-import { type GameState, RuleError } from "@/lib/whist";
+import { type GameState, leaders, RuleError } from "@/lib/whist";
 import { notifyRoom } from "./broadcast";
 import { fail, handle, readJson } from "./http";
+import { reportLeaderboard } from "./leaderboard";
 import { requireMember, requireStatus, saveRoom } from "./room";
 
 /**
@@ -36,6 +37,9 @@ export function moveHandler(
       game: { ...next, names: game.names },
       ...(next.phase === "over" ? { status: "finished" as const } : {}),
     });
+    if (next.phase === "over" && !next.abortedBy) {
+      await reportLeaderboard(room.code, room.round, game.names, leaders(next.scores));
+    }
     await notifyRoom(room.id, kind);
     return { ok: true };
   });
