@@ -165,7 +165,7 @@ export function Home() {
       <details className="text-sm text-zinc-600 dark:text-zinc-400">
         <summary className="cursor-pointer font-semibold">Reguli</summary>
         <ol className="mt-2 list-decimal space-y-1 pl-5">
-          <li>3 sau 4 jucători. Pachetul are 8 cărți de fiecare jucător: la 3 de la 9 la A, la 4 de la 7 la A.</li>
+          <li>3 până la 6 jucători. Pachetul are 8 cărți de fiecare jucător: la 3 de la 9 la A, la 4 de la 7 la A, la 5 de la 5 la A, la 6 de la 3 la A.</li>
           <li>Varianta 1-8-1: întâi câte o mână de 1 carte pentru fiecare jucător, apoi 2…7, câte o mână de 8, 7…2 și iar de 1.</li>
           <li>Atuul e cartea întoarsă după împărțire. La mâinile de 8 nu există atu.</li>
           <li>Fiecare spune câte levate ia. Ultimul (cel care a împărțit) nu poate spune numărul care face totalul egal cu numărul de cărți.</li>

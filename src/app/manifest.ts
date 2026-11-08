@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Whist",
     short_name: "Whist",
-    description: "Whist românesc (1-8-1) între prieteni, pe telefon. 3-4 jucători.",
+    description: "Whist românesc (1-8-1) între prieteni, pe telefon. 3-6 jucători.",
     id: "/whist/",
     start_url: "/whist/",
     // "/" on purpose: leaving the game for the hub (same origin) stays inside the installed app.

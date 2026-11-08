@@ -1,7 +1,7 @@
 // Pure Whist rules (Romanian "whist cu licitație") - shared by server and client, no I/O.
 
 export const MIN_PLAYERS = 3;
-export const MAX_PLAYERS = 4;
+export const MAX_PLAYERS = 6;
 export const NICKNAME_MAX = 10;
 /** Cards per player in the biggest hand. The deck has 8 cards per player. */
 export const MAX_HAND = 8;
@@ -33,7 +33,7 @@ export function isRoomExpired(status: string, lastActivityAt: string | Date, now
 
 export type Suit = "S" | "H" | "D" | "C";
 export const SUITS: Suit[] = ["S", "H", "C", "D"]; // display order: alternate colours
-/** 7..14 (11 = J, 12 = Q, 13 = K, 14 = A) */
+/** 3..14 (11 = J, 12 = Q, 13 = K, 14 = A) */
 export type Rank = number;
 /** Compact card id: suit + rank, e.g. "H14" = A♥, "S10" = 10♠. */
 export type Card = string;
@@ -51,11 +51,14 @@ export function rankLabel(r: Rank): string {
 }
 
 export function isCard(value: unknown): value is Card {
-  if (typeof value !== "string" || !/^[SHDC](7|8|9|1[0-4])$/.test(value)) return false;
+  if (typeof value !== "string" || !/^[SHDC]([3-9]|1[0-4])$/.test(value)) return false;
   return true;
 }
 
-/** The 8 highest cards of each suit per player: 3 players -> 9..A (24 cards), 4 -> 7..A (32). */
+/**
+ * The 8 highest cards of each suit per player, so every deal is exact and the 8-card hand uses the whole deck:
+ * 3 players -> 9..A (24 cards), 4 -> 7..A (32), 5 -> 5..A (40), 6 -> 3..A (48).
+ */
 export function buildDeck(players: number): Card[] {
   const lowest = 15 - (MAX_HAND * players) / 4;
   const deck: Card[] = [];

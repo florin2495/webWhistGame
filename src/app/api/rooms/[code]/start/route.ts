@@ -3,7 +3,7 @@ import { fail, handle } from "@/lib/server/http";
 import { clearKicks, listPlayers, requireHost, requireMember, requireStatus, saveRoom } from "@/lib/server/room";
 import { MAX_PLAYERS, MIN_PLAYERS, newGame } from "@/lib/whist";
 
-// POST /api/rooms/[code]/start - host only, 3-4 players. Seats everyone and deals the first hand.
+// POST /api/rooms/[code]/start - host only, 3-6 players. Seats everyone and deals the first hand.
 export async function POST(req: Request, ctx: RouteContext<"/api/rooms/[code]/start">) {
   return handle(async () => {
     const { code } = await ctx.params;
@@ -13,7 +13,7 @@ export async function POST(req: Request, ctx: RouteContext<"/api/rooms/[code]/st
 
     const players = await listPlayers(room.id);
     if (players.length < MIN_PLAYERS || players.length > MAX_PLAYERS) {
-      fail(409, `Whist se joacă în ${MIN_PLAYERS} sau ${MAX_PLAYERS} jucători. Acum sunteți ${players.length}.`);
+      fail(409, `Whist se joacă în ${MIN_PLAYERS}-${MAX_PLAYERS} jucători. Acum sunteți ${players.length}.`);
     }
 
     // Spectators never get a seat. The order is the one the host set (see reorder / new-round).

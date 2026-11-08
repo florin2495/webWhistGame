@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     icon: { url: `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/favicon.ico`, sizes: "48x48", type: "image/x-icon" },
     apple: { url: `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/icons/touch-icon-180.png`, sizes: "180x180", type: "image/png" },
   },
-  description: "Whist românesc (1-8-1) între prieteni, pe telefon. 3-4 jucători.",
+  description: "Whist românesc (1-8-1) între prieteni, pe telefon. 3-6 jucători.",
 };
 
 export const viewport: Viewport = {

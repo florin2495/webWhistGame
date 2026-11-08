@@ -32,11 +32,19 @@ describe("deck and structure", () => {
     expect(buildDeck(3)).not.toContain("S8");
     expect(buildDeck(4)).toContain("S7");
     expect(new Set(buildDeck(4)).size).toBe(32);
+    expect(buildDeck(5)).toHaveLength(40);
+    expect(buildDeck(5)).toContain("S5");
+    expect(buildDeck(5)).not.toContain("S4");
+    expect(buildDeck(6)).toHaveLength(48);
+    expect(buildDeck(6)).toContain("D3");
+    expect(new Set(buildDeck(6)).size).toBe(48);
   });
 
   it("builds 1-8-1 and 8-1-8 sequences", () => {
     expect(handSizes(3, "1-8-1")).toEqual([1, 1, 1, 2, 3, 4, 5, 6, 7, 8, 8, 8, 7, 6, 5, 4, 3, 2, 1, 1, 1]);
     expect(handSizes(4, "1-8-1")).toHaveLength(24);
+    expect(handSizes(5, "1-8-1")).toHaveLength(27);
+    expect(handSizes(6, "1-8-1")).toHaveLength(30);
     expect(handSizes(4, "8-1-8").slice(0, 5)).toEqual([8, 8, 8, 8, 7]);
   });
 });
@@ -55,9 +63,23 @@ describe("dealing", () => {
     expect(g.trumpCard).toBeNull();
   });
 
-  it("refuses 2 or 5 players", () => {
+  it("refuses 2 or 7 players", () => {
     expect(() => newGame(["a", "b"], DEFAULT_SETTINGS)).toThrow(RuleError);
-    expect(() => newGame(["a", "b", "c", "d", "e"], DEFAULT_SETTINGS)).toThrow(RuleError);
+    expect(() => newGame(["a", "b", "c", "d", "e", "f", "g"], DEFAULT_SETTINGS)).toThrow(RuleError);
+  });
+
+  it("deals 5 and 6 players exactly, with distinct cards and a trump under 8 cards", () => {
+    for (const n of [5, 6]) {
+      const seats = Array.from({ length: n }, (_, i) => `p${i}`);
+      const g = newGame(seats, DEFAULT_SETTINGS, rng(n));
+      const all = [...g.hands.flat(), g.trumpCard!];
+      expect(g.hands.every((h) => h.length === 1)).toBe(true);
+      expect(new Set(all).size).toBe(n + 1);
+      const big = newGame(seats, { ...DEFAULT_SETTINGS, sequence: "8-1-8" }, rng(n));
+      expect(big.hands.every((h) => h.length === 8)).toBe(true);
+      expect(new Set(big.hands.flat()).size).toBe(n * 8);
+      expect(big.trumpCard).toBeNull();
+    }
   });
 });
 
@@ -143,25 +165,27 @@ describe("scoring", () => {
 });
 
 describe("full game", () => {
-  it("plays a whole 3-player game with legal random moves", () => {
-    const random = rng(7);
-    let g = newGame(["a", "b", "c"], DEFAULT_SETTINGS, random);
-    let guard = 0;
-    while (g.phase !== "over" && guard++ < 10_000) {
-      if (g.phase === "bidding") {
-        const options = allowedBids(g, g.turn);
-        g = placeBid(g, g.turn, options[Math.floor(random() * options.length)]);
-      } else {
-        const legal = legalCards(g, g.turn);
-        g = playCard(g, g.turn, legal[Math.floor(random() * legal.length)], random);
+  for (const n of [3, 4, 5, 6]) {
+    it(`plays a whole ${n}-player game with legal random moves`, () => {
+      const random = rng(7 + n);
+      let g = newGame(Array.from({ length: n }, (_, i) => `p${i}`), DEFAULT_SETTINGS, random);
+      let guard = 0;
+      while (g.phase !== "over" && guard++ < 20_000) {
+        if (g.phase === "bidding") {
+          const options = allowedBids(g, g.turn);
+          g = placeBid(g, g.turn, options[Math.floor(random() * options.length)]);
+        } else {
+          const legal = legalCards(g, g.turn);
+          g = playCard(g, g.turn, legal[Math.floor(random() * legal.length)], random);
+        }
       }
-    }
-    expect(g.phase).toBe("over");
-    expect(g.history).toHaveLength(21);
-    for (const h of g.history) {
-      expect(h.tricks.reduce((a, b) => a + b, 0)).toBe(h.handSize);
-      expect(h.bids.reduce((a, b) => a + b, 0)).not.toBe(h.handSize);
-    }
-    expect(g.scores).toEqual(g.history.at(-1)!.totals);
-  });
+      expect(g.phase).toBe("over");
+      expect(g.history).toHaveLength(3 * n + 12);
+      for (const h of g.history) {
+        expect(h.tricks.reduce((a, b) => a + b, 0)).toBe(h.handSize);
+        expect(h.bids.reduce((a, b) => a + b, 0)).not.toBe(h.handSize);
+      }
+      expect(g.scores).toEqual(g.history.at(-1)!.totals);
+    });
+  }
 });

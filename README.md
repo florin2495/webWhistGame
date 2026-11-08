@@ -1,6 +1,6 @@
 # webWhistGame
 
-Whist românesc (cu licitație), 3–4 jucători, pe telefon. Pe stilul [Bingo](https://bingo.hailatat.icu):
+Whist românesc (cu licitație), 3–6 jucători, pe telefon. Pe stilul [Bingo](https://bingo.hailatat.icu):
 Next.js 16 (App Router), Supabase (Postgres + Realtime Broadcast), deploy pe Vercel (fra1).
 Adresă: **https://whist.hailatat.icu**
 
@@ -8,7 +8,7 @@ Adresă: **https://whist.hailatat.icu**
 
 1. Creatorul camerei alege varianta **1-8-1** sau **8-1-8**, bonusul ±10 și tăierea obligatorie.
    Poate schimba regulile cât camera e în lobby. Camera poate avea parolă.
-2. Ceilalți intră cu codul camerei sau cu linkul `/room/COD`. Se joacă în **3 sau 4** jucători.
+2. Ceilalți intră cu codul camerei sau cu linkul `/room/COD`. Se joacă în **3 până la 6** jucători.
 3. Pachetul are 8 cărți pentru fiecare jucător: în 3, de la 9 la A (24 de cărți); în 4, de la 7 la A (32).
 4. **1-8-1**: câte o mână de 1 carte pentru fiecare jucător, apoi 2, 3 … 7, câte o mână de 8, 7 … 2, și iar câte una de 1
    (21 de mâini în 3, 24 în 4). **8-1-8** e invers.
