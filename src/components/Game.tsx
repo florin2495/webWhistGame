@@ -100,9 +100,9 @@ export function Game({ state, token, refresh }: { state: RoomState; token: strin
         </div>
       </Panel>
 
-      <Seats g={g} state={state} token={token} refresh={refresh} />
-
       {g.phase !== "over" && <Table g={g} />}
+
+      <Seats g={g} state={state} token={token} refresh={refresh} />
 
       {lastResult && (
         <p className="rounded-lg bg-zinc-100 px-3 py-2 text-center text-xs text-zinc-600 dark:bg-zinc-900 dark:text-zinc-400">
@@ -270,7 +270,7 @@ function Table({ g }: { g: PublicGame }) {
           )}
         </span>
         <span className="text-[10px] leading-tight text-emerald-100">
-          {g.bids[seat] === null ? "–" : `${g.tricks[seat]}/${g.bids[seat]}`} · {g.cardsLeft[seat]}🂠
+          {g.bids[seat] === null ? "–" : `${g.tricks[seat]}/${g.bids[seat]}`} · {g.cardsLeft[seat]}c
         </span>
         <span className={`flex h-11 items-center ${showingLast ? "opacity-70" : ""}`}>
           {played ? <PlayingCard card={played.card} size="xs" highlight={won} /> : <span className="h-11 w-8 rounded-lg border border-dashed border-emerald-200/30" />}

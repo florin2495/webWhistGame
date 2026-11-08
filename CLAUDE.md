@@ -21,7 +21,7 @@ so this list is the source of truth. **Update it whenever the user confirms a mi
 | `supabase/schema.sql` (initial) | yes (2026-11-07, verified: service role 200, anon 42501) | `whist_rooms`, `whist_players` |
 | `supabase/migrations/001_pending_kick.sql` | yes (2026-11-07, verified) | `whist_players.kick_requested_at` (kick during a game waits 10 s, can be ignored). Do not push before it is applied |
 | `supabase/migrations/002_reconnect.sql` | yes (2026-11-07, verified: service role 200, anon 401) | `whist_players.last_seen_at`, `device_hash` + index (rejoin the same seat). Do not push before it is applied |
-| `supabase/migrations/003_spectators_order.sql` | **no (pending, user runs it)** | `whist_players.role` (player/spectator), `seat` (play order, host reorders), `queued_at` (spectator queue). Do not push before it is applied |
+| `supabase/migrations/003_spectators_order.sql` | yes (user ran `ALL_MIGRATIONS.sql` on 2026-11-08, not re-verified by effect) | `whist_players.role` (player/spectator), `seat` (play order, host reorders), `queued_at` (spectator queue). Do not push before it is applied |
 
 Rules for schema changes:
 - Every object of this game is prefixed `whist_` (tables, constraints, indexes). Table names live in `T`
@@ -33,6 +33,8 @@ Rules for schema changes:
 - Never print or commit the keys in `.env.local`.
 
 ## Design
+- 3-6 players (`MAX_PLAYERS = 6`): the deck is always the 8 highest cards of each suit per player (3: 9..A, 4: 7..A, 5: 5..A, 6: 3..A), same 1-8-1 / 8-1-8 sequence, 3n+12 hands; 8-card hands have no trump.
+  Table layout (viewer at the bottom, clockwise from their left) is `src/lib/tableLayout.ts`.
 - Pure rules in `src/lib/whist.ts` (deal, bid, play, score). The whole game state, hands included, is one
   jsonb column `whist_rooms.game`, written with an optimistic lock on `whist_rooms.version` (`saveRoom`).
 - `/state` returns only the caller's own cards (`publicGame` in `src/lib/server/room.ts`).
@@ -46,7 +48,7 @@ Rules for schema changes:
   "Intră la runda următoare"; `new-round` promotes queued spectators in queue order, rotates the opener and keeps the host's order.
 - `POST /reorder` (host, lobby only) sets `whist_players.seat`; `start` seats players in exactly that order.
 - Finished games are reported to the hub's `hub_leaderboard` / `hub_leaderboard_rounds` (`lib/server/leaderboard.ts`, idempotent per
-  room code + round). **Do not push until the hub migration `002_hub_leaderboard.sql` has been run** (failures are only logged).
+  room code + round). The hub migration `002_hub_leaderboard.sql` has been run (failures are only logged). `LEADERBOARD_GAME` env var overrides the slug for local tests (`whist-test`).
 
 ## Testing
 - `npm test` (Vitest, `src/lib/whist.test.ts` incl. a full random game), `npx tsc --noEmit`, `npx eslint src`, `npx next build`.
