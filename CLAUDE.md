@@ -21,6 +21,7 @@ so this list is the source of truth. **Update it whenever the user confirms a mi
 | `supabase/schema.sql` (initial) | yes (2026-11-07, verified: service role 200, anon 42501) | `whist_rooms`, `whist_players` |
 | `supabase/migrations/001_pending_kick.sql` | yes (2026-11-07, verified) | `whist_players.kick_requested_at` (kick during a game waits 10 s, can be ignored). Do not push before it is applied |
 | `supabase/migrations/002_reconnect.sql` | yes (2026-11-07, verified: service role 200, anon 401) | `whist_players.last_seen_at`, `device_hash` + index (rejoin the same seat). Do not push before it is applied |
+| `supabase/migrations/003_spectators_order.sql` | **no (pending, user runs it)** | `whist_players.role` (player/spectator), `seat` (play order, host reorders), `queued_at` (spectator queue). Do not push before it is applied |
 
 Rules for schema changes:
 - Every object of this game is prefixed `whist_` (tables, constraints, indexes). Table names live in `T`
@@ -39,6 +40,13 @@ Rules for schema changes:
   re-joining with an existing nickname reclaims that seat (new token) from the same device (`device_hash`) or once
   the seat has been unseen for 45 s, also mid-game. `/state` exposes only a derived `connected` flag.
 - Realtime: Broadcast topic `whist:room:<uuid>` carries no data, clients re-fetch `/state`; 15 s polling fallback.
+
+## Spectators, order, leaderboard
+- Joining a running game (or a full lobby) makes you a spectator (max 16, `lib/spectators.ts`); `POST /queue` toggles
+  "Intră la runda următoare"; `new-round` promotes queued spectators in queue order, rotates the opener and keeps the host's order.
+- `POST /reorder` (host, lobby only) sets `whist_players.seat`; `start` seats players in exactly that order.
+- Finished games are reported to the hub's `hub_leaderboard` / `hub_leaderboard_rounds` (`lib/server/leaderboard.ts`, idempotent per
+  room code + round). **Do not push until the hub migration `002_hub_leaderboard.sql` has been run** (failures are only logged).
 
 ## Testing
 - `npm test` (Vitest, `src/lib/whist.test.ts` incl. a full random game), `npx tsc --noEmit`, `npx eslint src`, `npx next build`.
