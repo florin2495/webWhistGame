@@ -121,14 +121,28 @@ export function requireStatus(room: RoomRow, ...allowed: RoomRow["status"][]) {
   }
 }
 
-export async function listPlayers(roomId: string): Promise<PlayerRow[]> {
+/** Everyone in the room (players and spectators). Players come in play order (seat, then join order). */
+export async function listMembers(roomId: string): Promise<PlayerRow[]> {
   const { data, error } = await db()
     .from(T.players)
     .select(PLAYER_COLUMNS)
     .eq("room_id", roomId)
+    .order("seat", { ascending: true, nullsFirst: false })
     .order("joined_at", { ascending: true });
   if (error) throw error;
   return (data ?? []) as PlayerRow[];
+}
+
+/** The players only (not spectators), in play order. */
+export async function listPlayers(roomId: string): Promise<PlayerRow[]> {
+  return (await listMembers(roomId)).filter((p) => p.role === "player");
+}
+
+/** Spectators in queue order: queued ones first (by queued_at), then the others by join time. */
+export function sortSpectators(rows: PlayerRow[]): PlayerRow[] {
+  const spectators = rows.filter((p) => p.role === "spectator");
+  const q = (p: PlayerRow) => (p.queued_at ? Date.parse(p.queued_at) : Infinity);
+  return [...spectators].sort((a, b) => q(a) - q(b) || Date.parse(a.joined_at) - Date.parse(b.joined_at));
 }
 
 /**
@@ -167,6 +181,8 @@ const toPublic = (p: PlayerRow, now: number): PublicPlayer => ({
   id: p.id,
   nickname: p.nickname,
   isHost: p.is_host,
+  role: p.role,
+  queued: p.queued_at !== null,
   kickRemainingMs: kickRemainingMs(p.kick_requested_at, now),
   connected: isConnected(p.last_seen_at, now),
 });
@@ -205,7 +221,9 @@ function publicGame(g: StoredGame, meId: string): PublicGame {
 
 export async function buildState(room: RoomRow, me: PlayerRow): Promise<RoomState> {
   const now = Date.now();
-  const players = await listPlayers(room.id);
+  const members = await listMembers(room.id);
+  const players = members.filter((p) => p.role === "player");
+  const spectators = sortSpectators(members);
   let ordered = players;
   if (room.game) {
     const pos = new Map(room.game.seats.map((id, i) => [id, i]));
@@ -223,6 +241,7 @@ export async function buildState(room: RoomRow, me: PlayerRow): Promise<RoomStat
       settings: room.settings,
     },
     players: ordered.map((p) => toPublic(p, now)),
+    spectators: spectators.map((p) => toPublic(p, now)),
     me: toPublic(me, now),
     game: room.game ? publicGame(room.game, me.id) : null,
   };

@@ -13,7 +13,6 @@ import {
   placeBid,
   playCard,
   RuleError,
-  seatOrder,
   trickWinner,
 } from "./whist";
 
@@ -39,11 +38,6 @@ describe("deck and structure", () => {
     expect(handSizes(3, "1-8-1")).toEqual([1, 1, 1, 2, 3, 4, 5, 6, 7, 8, 8, 8, 7, 6, 5, 4, 3, 2, 1, 1, 1]);
     expect(handSizes(4, "1-8-1")).toHaveLength(24);
     expect(handSizes(4, "8-1-8").slice(0, 5)).toEqual([8, 8, 8, 8, 7]);
-  });
-
-  it("rotates the opening seat every game", () => {
-    expect(seatOrder(["a", "b", "c"], "b", 1)).toEqual(["b", "a", "c"]);
-    expect(seatOrder(["a", "b", "c"], "b", 2)).toEqual(["a", "c", "b"]);
   });
 });
 

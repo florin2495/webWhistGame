@@ -38,8 +38,9 @@ export function KickButton({
   if (target && target.kickRemainingMs !== null) return null; // already pending: the badge says so
 
   async function kick() {
+    const spectating = state.spectators.some((s) => s.id === playerId);
     const text =
-      room.status === "playing"
+      room.status === "playing" && !spectating
         ? `Scoți jucătorul ${nickname} din cameră? Are 10 secunde să refuze; dacă nu, jocul se oprește pentru toți.`
         : `Scoți jucătorul ${nickname} din cameră?`;
     if (!window.confirm(text)) return;
@@ -72,14 +73,45 @@ export function KickButton({
 export function PlayerList({ state, token, refresh }: { state: RoomState; token: string; refresh: () => Promise<void> }) {
   const { players, me, room } = state;
   const canKick = room.hostPlayerId === me.id;
+  const canReorder = canKick && room.status === "lobby" && players.length > 1;
   const [error, setError] = useState("");
+  const [moving, setMoving] = useState(false);
+
+  async function move(index: number, delta: -1 | 1) {
+    const order = players.map((p) => p.id);
+    [order[index], order[index + delta]] = [order[index + delta], order[index]];
+    setMoving(true);
+    setError("");
+    try {
+      await api(`/api/rooms/${room.code}/reorder`, { token, body: { order } });
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Eroare.");
+    } finally {
+      setMoving(false);
+    }
+  }
+
+  const arrow = "flex size-8 shrink-0 items-center justify-center rounded-md border border-zinc-300 text-sm disabled:opacity-30 dark:border-zinc-700";
 
   return (
     <>
+      {canReorder && <p className="mb-1 text-xs text-zinc-500">Ordinea de joc: primul din listă deschide. Mută cu săgețile.</p>}
       <ul className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
-        {players.map((p) => (
+        {players.map((p, i) => (
           <li key={p.id} className="flex items-center justify-between gap-2 py-2">
             <span className="flex min-w-0 items-center gap-2">
+              {canReorder && (
+                <span className="flex shrink-0 gap-1">
+                  <button type="button" className={arrow} disabled={moving || i === 0} onClick={() => void move(i, -1)} aria-label={`Mută ${p.nickname} mai sus`}>
+                    ▲
+                  </button>
+                  <button type="button" className={arrow} disabled={moving || i === players.length - 1} onClick={() => void move(i, 1)} aria-label={`Mută ${p.nickname} mai jos`}>
+                    ▼
+                  </button>
+                </span>
+              )}
+              <span className="w-4 shrink-0 text-center text-xs text-zinc-500">{i + 1}</span>
               <span className="truncate">
                 {p.nickname}
                 {p.id === me.id && <span className="text-zinc-500"> (tu)</span>}

@@ -44,12 +44,22 @@ create table if not exists public.whist_players (
   joined_at  timestamptz not null default now(),
   kick_requested_at timestamptz,                        -- pending kick during a game (null = none), see migrations/001
   last_seen_at timestamptz not null default now(),      -- presence: disconnected after 45 s, see migrations/002
-  device_hash  text                                     -- sha256 of the browser's device id, see migrations/002
+  device_hash  text,                                    -- sha256 of the browser's device id, see migrations/002
+  role       text not null default 'player'
+             constraint whist_players_role_check check (role in ('player', 'spectator')),  -- see migrations/003
+  seat       integer,                                   -- play order among players (host reorders), see migrations/003
+  queued_at  timestamptz                                -- spectator waiting for the next round, see migrations/003
 );
 -- Existing databases: the lines above only apply to a fresh table.
 alter table public.whist_players add column if not exists kick_requested_at timestamptz;
 alter table public.whist_players add column if not exists last_seen_at timestamptz not null default now();
 alter table public.whist_players add column if not exists device_hash text;
+alter table public.whist_players add column if not exists role text not null default 'player';
+alter table public.whist_players add column if not exists seat integer;
+alter table public.whist_players add column if not exists queued_at timestamptz;
+do $$ begin
+  alter table public.whist_players add constraint whist_players_role_check check (role in ('player', 'spectator'));
+exception when duplicate_object then null; end $$;
 create unique index if not exists whist_players_room_nickname_uq on public.whist_players (room_id, lower(nickname));
 create index if not exists whist_players_room_idx on public.whist_players (room_id);
 create index if not exists whist_players_room_seen_idx on public.whist_players (room_id, last_seen_at);

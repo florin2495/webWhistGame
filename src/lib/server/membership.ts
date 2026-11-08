@@ -3,7 +3,7 @@ import { notifyRoom } from "./broadcast";
 import { db, type RoomRow, T } from "./db";
 import { kickCutoffIso } from "@/lib/kick";
 import { ApiError } from "./http";
-import { listPlayers, reloadRoom, saveRoom } from "./room";
+import { listMembers, reloadRoom, saveRoom } from "./room";
 
 /**
  * Removes a player from a room (used by both "leave" and the host's "kick").
@@ -13,9 +13,9 @@ import { listPlayers, reloadRoom, saveRoom } from "./room";
  *    number of players), so the game stops; the score sheet stays visible.
  */
 export async function removePlayer(room: RoomRow, playerId: string, reason: string): Promise<{ roomClosed: boolean }> {
-  const players = await listPlayers(room.id);
-  const leaving = players.find((p) => p.id === playerId);
-  const remaining = players.filter((p) => p.id !== playerId);
+  const members = await listMembers(room.id);
+  const leaving = members.find((p) => p.id === playerId);
+  const remaining = members.filter((p) => p.id !== playerId);
 
   if (remaining.length === 0) {
     const { error } = await db().from(T.rooms).delete().eq("id", room.id);
@@ -23,7 +23,9 @@ export async function removePlayer(room: RoomRow, playerId: string, reason: stri
     return { roomClosed: true };
   }
 
-  const newHostId = room.host_player_id === playerId ? remaining[0].id : room.host_player_id;
+  // Host leaves: next player in play order; a spectator only if nobody else is left (then they become a player).
+  const newHost = room.host_player_id === playerId ? (remaining.find((p) => p.role === "player") ?? remaining[0]) : null;
+  const newHostId = newHost ? newHost.id : room.host_player_id;
   const update: Partial<RoomRow> = { host_player_id: newHostId };
   if (room.status === "playing" && room.game?.seats.includes(playerId)) {
     update.status = "finished";
@@ -34,7 +36,9 @@ export async function removePlayer(room: RoomRow, playerId: string, reason: stri
   await saveRoom(room, update);
 
   if (newHostId && newHostId !== room.host_player_id) {
-    const { error } = await db().from(T.players).update({ is_host: true }).eq("id", newHostId);
+    const seat = Math.max(-1, ...remaining.map((p) => p.seat ?? -1)) + 1;
+    const promote = newHost?.role === "spectator" ? { role: "player", seat, queued_at: null } : {};
+    const { error } = await db().from(T.players).update({ is_host: true, ...promote }).eq("id", newHostId);
     if (error) throw error;
   }
 

@@ -5,6 +5,7 @@ import { db, T } from "@/lib/server/db";
 import { cleanText, fail, handle, isUniqueViolation, readJson } from "@/lib/server/http";
 import { getRoomByCode, touchRoom } from "@/lib/server/room";
 import { seatBusyMessage, seatClaim } from "@/lib/reconnect";
+import { MAX_SPECTATORS } from "@/lib/spectators";
 import { MAX_PLAYERS, NICKNAME_MAX } from "@/lib/whist";
 
 interface SeatRow {
@@ -13,6 +14,8 @@ interface SeatRow {
   token_hash: string;
   device_hash: string | null;
   last_seen_at: string;
+  role: "player" | "spectator";
+  seat: number | null;
 }
 
 // POST /api/rooms/[code]/join  { nickname, password?, deviceId? }
@@ -34,7 +37,7 @@ export async function POST(req: Request, ctx: RouteContext<"/api/rooms/[code]/jo
 
     const { data: seats, error: seatsError } = await db()
       .from(T.players)
-      .select("id, nickname, token_hash, device_hash, last_seen_at")
+      .select("id, nickname, token_hash, device_hash, last_seen_at, role, seat")
       .eq("room_id", room.id);
     if (seatsError) throw seatsError;
     const rows = (seats ?? []) as SeatRow[];
@@ -59,23 +62,35 @@ export async function POST(req: Request, ctx: RouteContext<"/api/rooms/[code]/jo
       if (!data || data.length === 0) fail(409, "Locul tocmai a fost reluat de altcineva. Mai încearcă o dată.");
       await touchRoom(room.id);
       await notifyRoom(room.id, "player_rejoined");
-      return { code: room.code, playerId: existing.id, token };
+      return { code: room.code, playerId: existing.id, token, role: existing.role };
     }
 
-    if (room.status === "playing") fail(409, "Jocul a început deja. Intră după jocul curent.");
-    if (rows.length >= MAX_PLAYERS) fail(409, `Camera e plină (maxim ${MAX_PLAYERS} jucători).`);
+    // A running game (or a full room) can only be watched: the newcomer becomes a spectator.
+    const players = rows.filter((p) => p.role === "player");
+    const spectate = room.status === "playing" || players.length >= MAX_PLAYERS;
+    if (spectate && rows.length - players.length >= MAX_SPECTATORS) {
+      fail(409, `Camera are deja ${MAX_SPECTATORS} spectatori, nu mai e loc nici pentru privit.`);
+    }
 
     const token = newPlayerToken();
+    const seat = Math.max(-1, ...players.map((p) => p.seat ?? -1)) + 1;
     const { data, error } = await db()
       .from(T.players)
-      .insert({ room_id: room.id, nickname, token_hash: hashToken(token), device_hash: deviceHash })
+      .insert({
+        room_id: room.id,
+        nickname,
+        token_hash: hashToken(token),
+        device_hash: deviceHash,
+        role: spectate ? "spectator" : "player",
+        seat: spectate ? null : seat,
+      })
       .select("id")
       .single();
     if (isUniqueViolation(error)) fail(409, "Nickname-ul e deja folosit în cameră.");
     if (error) throw error;
 
     await touchRoom(room.id);
-    await notifyRoom(room.id, "player_joined");
-    return { code: room.code, playerId: data.id, token };
+    await notifyRoom(room.id, spectate ? "spectator_joined" : "player_joined");
+    return { code: room.code, playerId: data.id, token, role: spectate ? "spectator" : "player" };
   });
 }

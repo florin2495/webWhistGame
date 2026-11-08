@@ -23,6 +23,7 @@ import { KickClockProvider, KickModal, useKickClock } from "./KickCountdown";
 import { Game } from "./Game";
 import { Lobby } from "./Lobby";
 import { SettingsPanel } from "./SettingsPanel";
+import { Spectators } from "./Spectators";
 import { Button, Card, ErrorText, Field } from "./ui";
 
 const POLL_MS = 15_000;
@@ -182,6 +183,7 @@ function Room({ code, token }: { code: string; token: string }) {
       ) : (
         <Game state={state} token={token} refresh={refresh} />
       )}
+      <Spectators state={state} token={token} refresh={refresh} />
       <SettingsPanel />
       <LeaveButton state={state} token={token} />
       {state.me.kickRemainingMs !== null && <KickModal state={state} token={token} refresh={refresh} />}
@@ -194,13 +196,16 @@ function LeaveButton({ state, token }: { state: RoomState; token: string }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const { room, me, players } = state;
+  const { room, me, players, spectators } = state;
   const isHost = room.hostPlayerId === me.id;
-  const alone = players.length <= 1;
+  const spectating = me.role === "spectator";
+  const alone = players.length + spectators.length <= 1;
 
   async function leave() {
     const warning = alone
       ? "Ești singur în cameră. Dacă pleci, camera se închide. Continui?"
+      : spectating
+        ? "Sigur vrei să părăsești camera?"
       : room.status === "playing"
         ? "Dacă pleci acum, jocul se oprește pentru toți (whist nu continuă cu un loc gol). Continui?"
         : isHost
@@ -226,7 +231,7 @@ function LeaveButton({ state, token }: { state: RoomState; token: string }) {
   return (
     <div className="pb-6 pt-2 text-center">
       <Button variant="danger" className="w-full" onClick={() => void leave()} disabled={busy}>
-        {busy ? "Se iese…" : room.status === "playing" ? "Părăsește jocul" : "Părăsește camera"}
+        {busy ? "Se iese…" : room.status === "playing" && !spectating ? "Părăsește jocul" : "Părăsește camera"}
       </Button>
       <div className="mt-2">
         <ErrorText>{error}</ErrorText>

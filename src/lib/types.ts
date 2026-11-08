@@ -6,6 +6,10 @@ export interface PublicPlayer {
   id: string;
   nickname: string;
   isHost: boolean;
+  /** "spectator" = watching only (joined a running game or a full room). */
+  role: "player" | "spectator";
+  /** Spectator who pressed "Intră la runda următoare". */
+  queued: boolean;
   /** Milliseconds the player still has to press "Ignoră" on a pending kick; null = no pending kick. */
   kickRemainingMs: number | null;
   /** Seen in the last 45 s (see lib/reconnect.ts). False = phone in the background, closed tab, no network. */
@@ -59,8 +63,10 @@ export interface RoomState {
     hostPlayerId: string | null;
     settings: Settings;
   };
-  /** Seat order while a game exists, join order in the lobby. */
+  /** Seat order while a game exists, otherwise the play order the host chose (join order by default). */
   players: PublicPlayer[];
+  /** Spectators, queued ones first in queue order. */
+  spectators: PublicPlayer[];
   me: PublicPlayer;
   game: PublicGame | null;
 }

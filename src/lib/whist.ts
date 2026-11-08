@@ -110,20 +110,6 @@ export function handSizes(players: number, sequence: Sequence): number[] {
     : [...rep(MAX_HAND), ...down, ...rep(1), ...up, ...rep(MAX_HAND)];
 }
 
-/**
- * Seat order for game number `round`: host first, then join order, rotated by one seat
- * every new game so a different player opens.
- */
-export function seatOrder(playerIdsByJoin: string[], hostId: string | null, round: number): string[] {
-  const base =
-    hostId && playerIdsByJoin.includes(hostId)
-      ? [hostId, ...playerIdsByJoin.filter((id) => id !== hostId)]
-      : [...playerIdsByJoin];
-  if (base.length === 0) return base;
-  const shift = (((round - 1) % base.length) + base.length) % base.length;
-  return [...base.slice(shift), ...base.slice(0, shift)];
-}
-
 /** Seat that bids and leads first in hand `handIndex` (the player after the dealer). */
 export const firstSeat = (handIndex: number, n: number) => handIndex % n;
 /** Dealer seat of hand `handIndex`. */
