@@ -6,15 +6,14 @@ import { cleanupExpiredRooms, parseSettings } from "@/lib/server/room";
 import type { RoomListItem } from "@/lib/types";
 import { NICKNAME_MAX, type Settings } from "@/lib/whist";
 
-// GET /api/rooms - public list of rooms that can be joined right now (lobby, not idle).
+// GET /api/rooms - public list of all open rooms (lobby, playing, finished; not idle). Newcomers to a running game spectate.
 export async function GET() {
   await connection(); // always request-time, never prerendered at build
   return handle(async () => {
     await cleanupExpiredRooms();
     const { data, error } = await db()
       .from(T.rooms)
-      .select("code, name, settings, password_hash, last_activity_at, players:whist_players!whist_players_room_id_fkey(count)")
-      .eq("status", "lobby")
+      .select("code, name, status, settings, password_hash, last_activity_at, players:whist_players!whist_players_room_id_fkey(role)")
       .order("last_activity_at", { ascending: false })
       .limit(50);
     if (error) throw error;
@@ -23,7 +22,8 @@ export async function GET() {
       name: r.name,
       settings: r.settings as Settings,
       hasPassword: r.password_hash !== null,
-      players: (r.players as unknown as { count: number }[])[0]?.count ?? 0,
+      status: r.status as RoomListItem["status"],
+      players: (r.players as unknown as { role: string }[]).filter((p) => p.role === "player").length,
     }));
     return { rooms };
   });

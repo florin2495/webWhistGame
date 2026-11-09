@@ -187,7 +187,7 @@ const toPublic = (p: PlayerRow, now: number): PublicPlayer => ({
   connected: isConnected(p.last_seen_at, now),
 });
 
-function publicGame(g: StoredGame, meId: string): PublicGame {
+export function publicGame(g: StoredGame, meId: string): PublicGame {
   const seat = g.seats.indexOf(meId);
   const mySeat = seat >= 0 ? seat : null;
   const myTurn = mySeat !== null && g.turn === mySeat;

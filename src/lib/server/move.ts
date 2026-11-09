@@ -3,7 +3,7 @@ import { type GameState, leaders, RuleError } from "@/lib/whist";
 import { notifyRoom } from "./broadcast";
 import { fail, handle, readJson } from "./http";
 import { reportLeaderboard } from "./leaderboard";
-import { requireMember, requireStatus, saveRoom } from "./room";
+import { publicGame, requireMember, requireStatus, saveRoom } from "./room";
 
 /**
  * Shared body of every in-game move (bid, play): authenticates the caller, applies the pure
@@ -33,14 +33,16 @@ export function moveHandler(
       throw err;
     }
 
+    const saved = { ...next, names: game.names };
     await saveRoom(room, {
-      game: { ...next, names: game.names },
+      game: saved,
       ...(next.phase === "over" ? { status: "finished" as const } : {}),
     });
     if (next.phase === "over" && !next.abortedBy) {
       await reportLeaderboard(room.code, room.round, game.names, leaders(next.scores));
     }
     await notifyRoom(room.id, kind);
-    return { ok: true };
+    // Enough for the mover to update its own screen without re-fetching /state.
+    return { ok: true, status: next.phase === "over" ? "finished" : "playing", game: publicGame(saved, player.id) };
   });
 }

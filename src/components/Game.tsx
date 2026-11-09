@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/lib/client/api";
 import { PREF_CONFIRM_PLAY, PREF_VIBRATE, useBoolPref } from "@/lib/client/prefs";
 import type { PublicGame, RoomState } from "@/lib/types";
@@ -14,7 +14,61 @@ import { Button, Card as Panel, ErrorText } from "./ui";
 
 const cardName = (c: Card) => `${rankLabel(rankOf(c))}${SUIT_SYMBOL[suitOf(c)]}`;
 
-export function Game({ state, token, refresh }: { state: RoomState; token: string; refresh: () => Promise<void> }) {
+/** How far a game has got: a response older than what is on screen must not overwrite it. */
+function progress(g: PublicGame): number {
+  if (g.phase === "over") return Infinity;
+  const bids = g.bids.filter((b) => b !== null).length;
+  const played = g.cardsLeft.reduce((a, n) => a + (g.handSize - n), 0);
+  return g.handIndex * 10_000 + bids * 100 + played;
+}
+
+interface MoveResult {
+  status: RoomState["room"]["status"];
+  game: PublicGame;
+}
+
+/** The state as it will look once my pending move is confirmed (card on the table / bid made, turn passed). */
+function withPending(s: RoomState, move: { card: Card } | { bid: number } | null): RoomState {
+  const g = s.game;
+  if (!move || !g || g.mySeat === null) return s;
+  const seat = g.mySeat;
+  const n = g.names.length;
+  if ("bid" in move) {
+    const bids = [...g.bids];
+    bids[seat] = move.bid;
+    return { ...s, game: { ...g, bids, turn: (g.turn + 1) % n, allowedBids: [] } };
+  }
+  if (g.myHand.includes(move.card) === false) return s;
+  const cardsLeft = [...g.cardsLeft];
+  cardsLeft[seat] -= 1;
+  return {
+    ...s,
+    game: {
+      ...g,
+      myHand: g.myHand.filter((c) => c !== move.card),
+      trick: [...g.trick, { seat, card: move.card }],
+      cardsLeft,
+      turn: (g.turn + 1) % n,
+      legal: [],
+    },
+  };
+}
+
+export function Game({
+  state: serverState,
+  token,
+  refresh,
+  patch,
+}: {
+  state: RoomState;
+  token: string;
+  refresh: () => Promise<void>;
+  /** Applies a change the server just confirmed, without re-fetching /state. */
+  patch: (fn: (s: RoomState) => RoomState) => void;
+}) {
+  // My move in flight: shown on screen right away, rolled back if the server refuses it.
+  const [pendingMove, setPendingMove] = useState<{ card: Card } | { bid: number } | null>(null);
+  const state = useMemo(() => withPending(serverState, pendingMove), [serverState, pendingMove]);
   const { room, me } = state;
   const g = state.game;
   const base = `/api/rooms/${room.code}`;
@@ -24,7 +78,7 @@ export function Game({ state, token, refresh }: { state: RoomState; token: strin
   const [confirmPlay] = useBoolPref(PREF_CONFIRM_PLAY, false);
   const [vibrate] = useBoolPref(PREF_VIBRATE, true);
 
-  const myTurn = g !== null && g.mySeat !== null && g.turn === g.mySeat && g.phase !== "over";
+  const myTurn = g !== null && g.mySeat !== null && g.turn === g.mySeat && g.phase !== "over" && pendingMove === null;
   const turnKey = g ? `${g.handIndex}:${g.phase}:${g.trick.length}:${g.tricks.join(",")}` : "";
 
   // Buzz once each time it becomes my move.
@@ -43,6 +97,25 @@ export function Game({ state, token, refresh }: { state: RoomState; token: strin
 
   if (!g) return <p className="text-center text-zinc-500">Se împart cărțile…</p>;
 
+  async function move(kind: "bid" | "play", body: { bid: number } | { card: Card }) {
+    setBusy(true);
+    setError("");
+    setSelected(null);
+    setPendingMove("card" in body ? { card: body.card } : { bid: body.bid });
+    try {
+      const r = await api<MoveResult>(`${base}/${kind}`, { token, body });
+      patch((s) =>
+        s.game && progress(s.game) > progress(r.game) ? s : { ...s, room: { ...s.room, status: r.status }, game: r.game },
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Eroare.");
+      void refresh(); // e.g. 409: someone moved first, resync
+    } finally {
+      setPendingMove(null);
+      setBusy(false);
+    }
+  }
+
   async function run(fn: () => Promise<unknown>) {
     setBusy(true);
     setError("");
@@ -58,8 +131,8 @@ export function Game({ state, token, refresh }: { state: RoomState; token: strin
     }
   }
 
-  const bid = (b: number) => run(() => api(`${base}/bid`, { token, body: { bid: b } }));
-  const play = (c: Card) => run(() => api(`${base}/play`, { token, body: { card: c } }));
+  const bid = (b: number) => move("bid", { bid: b });
+  const play = (c: Card) => move("play", { card: c });
 
   function tapCard(c: Card) {
     if (!myTurn || g!.phase !== "playing" || busy || !g!.legal.includes(c)) return;
@@ -128,15 +201,7 @@ export function Game({ state, token, refresh }: { state: RoomState; token: strin
           }`}
           aria-live="polite"
         >
-          {myTurn
-            ? g.phase === "bidding"
-              ? "Rândul tău: câte levate iei?"
-              : g.trick.length === 0
-                ? "Rândul tău: deschizi levata."
-                : "Rândul tău: joacă o carte."
-            : g.phase === "bidding"
-              ? `${turnName} licitează…`
-              : `${turnName} joacă…`}
+          {myTurn ? "Rândul tău" : `Rândul lui ${turnName}`}
         </p>
       )}
 

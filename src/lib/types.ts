@@ -76,7 +76,10 @@ export interface RoomListItem {
   code: string;
   name: string;
   hasPassword: boolean;
+  /** Seated players (not spectators). */
   players: number;
+  /** "lobby" = waiting to start, "playing" = game running (newcomers watch), "finished" = game over. */
+  status: RoomStatus;
   settings: Settings;
 }
 
