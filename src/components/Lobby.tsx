@@ -59,7 +59,7 @@ export function Lobby({ state, token, refresh }: { state: RoomState; token: stri
 
       <ErrorText>{error}</ErrorText>
       {isHost ? (
-        <Button onClick={() => void start()} disabled={busy || !canStart}>
+        <Button onClick={() => void start()} disabled={busy || !canStart} data-testid="start-game">
           {canStart ? `Împarte cărțile (${hands} mâini)` : `Ai nevoie de ${MIN_PLAYERS}-${MAX_PLAYERS} jucători`}
         </Button>
       ) : (

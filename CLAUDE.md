@@ -3,7 +3,7 @@
 # webWhistGame - project notes for Claude
 
 ## Accounts and deploy
-- GitHub: personal account **florin2495** only (repo `florin2495/webWhistGame`, private). Never the work account.
+- GitHub: personal account **florin2495** only (repo `florin2495/webWhistGame`, public). Never the work account.
   Local git identity is pinned in `.git/config`.
 - Vercel project is connected by hand by the user; served at https://games.hailatat.icu/whist (`basePath`; the hub proxies it to web-whist-game.vercel.app)
 - Functions run in `fra1` (Frankfurt, `vercel.json`), next to the Supabase DB.
@@ -57,7 +57,49 @@ Rules for schema changes:
 - Finished games are reported to the hub's `hub_leaderboard` / `hub_leaderboard_rounds` (`lib/server/leaderboard.ts`, idempotent per
   room code + round). The hub migration `002_hub_leaderboard.sql` has been run (failures are only logged). `LEADERBOARD_GAME` env var overrides the slug for local tests (`whist-test`).
 
-## Testing
-- `npm test` (Vitest, `src/lib/whist.test.ts` incl. a full random game), `npx tsc --noEmit`, `npx eslint src`, `npx next build`.
-- End-to-end: drive the real API with 3 and 4 players (create, join, settings, start, bid, play a whole hand,
-  leave mid-game, kick, new-round) against `npm run dev`. Delete the test rooms afterwards.
+## Testing (GitHub Actions, manual only)
+All checks run in GitHub Actions on the free tier (public repo, standard `ubuntu-latest` runners only, never billed
+runners), never locally (user's rule, see `D:\_DEv\CLAUDE.md`). Every workflow is `workflow_dispatch`
+only (no automatic trigger): nothing gates a push, and Vercel deploys `main` regardless.
+Start one with `gh workflow run <file> --ref main`, then `gh run watch` (or the Actions tab, "Run workflow").
+| Workflow | Runs |
+| --- | --- |
+| `.github/workflows/check.yml` "Check code" | `npx next typegen` + `npx tsc --noEmit` (also type-checks `tests/ui` and `playwright.config.ts`), `npx eslint src`, `npx next build`. Every step runs even if an earlier one failed |
+| `.github/workflows/unit-tests.yml` "Unit tests" | `npm test` (Vitest: `src/lib/whist.test.ts` incl. a full random game, `kick`, `reconnect`, `spectators`, `tableLayout` tests; pure logic, no DB) |
+| `.github/workflows/e2e.yml` "E2E" | `node scripts/e2e.mjs <base_url>` (input, default production `https://games.hailatat.icu/whist`), then `node scripts/e2e-multi.mjs <base_url> <n> <hands>` for each n of the `multi_players` input (default `4 5 6`, empty = skip) with `multi_hands` hands (default 4, `all` = whole game, slow with 6). One run at a time |
+| `.github/workflows/e2e-ui.yml` "E2E UI (Playwright)" | `npx playwright test` (`playwright.config.ts`, tests in `tests/ui/*.e2e.ts`) against `base_url` (`E2E_BASE_URL`, default production), on desktop Chromium and an emulated iPhone 13 (WebKit). Same concurrency group as "E2E". On failure the report (traces, screenshots, videos) is uploaded as the `playwright-report` artifact |
+
+- E2E needs the repo secrets `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (cleanup safety net and the
+  leaderboard checks; locally the scripts fall back to `.env.local`). It checks that the deployed client JS contains the
+  `package.json` version of the checked-out ref, so run it on `main` after the Vercel deploy of that version has finished.
+- What `e2e.mjs` does: page / `_next` assets / version / manifest / icons / `room/XXXXXX` over HTTP and that
+  `web-whist-game.vercel.app/whist` serves the same build, then the real API (production DB): create (password), wrong /
+  missing password, same nickname from another device = 409, 6 players + a 7th = spectator, room list, settings, auth
+  errors, rejoin (same device, old token dead), lobby kicks, host reorder (seats follow it), start, out-of-turn / illegal
+  bids and cards, dealer rule, spectators mid-game (no cards, 403 on moves, queue, rejoin, immediate kick), pending kick
+  with "Ignoră", rejoin mid-game, concurrent double play, a whole 3-player game with the score sheet recomputed and the
+  hub leaderboard report checked, new round (order rotated, queued spectator promoted), 5-player game (deck 5..A, 27
+  hands), enforced kick stopping the game, host leaving passes the host on, last one out closes the room.
+- What `e2e-multi.mjs` does (per player count): full lobby -> spectator (6), reorder, seats, 3n+12 hands, deck lowest rank,
+  late spectator sees no cards and queues, plays `hands` hands (all screens agree), then a player leaves (game stopped) or,
+  with `all`, the game ends and the leaderboard report is checked; new round promotes the queued spectator.
+- Both scripts name rooms `e2e-test-…` and nicknames `e2e…`; at the end they delete their rooms and their hub leaderboard
+  rows (`hub_leaderboard_rounds` of their room codes, `hub_leaderboard` rows `game=whist`, `player_key like e2e*`). They
+  never call `/api/feedback` (only its 400 validation).
+- What E2E UI does (`tests/ui/`, shared steps in `helpers.ts`; Whist is random, so the player whose screen says
+  "Rândul tău" picks the first enabled bid / card, and after every move every screen must show the same `hand-info`
+  `data-progress` within 5 s without a reload; polling is 15 s, so this checks Realtime):
+  - `game.e2e.ts` (both projects): three browser contexts (= three devices, Whist needs 3) create a room, join by link,
+    deal, bid and play the first 4 hands live, a player leaves (game stopped on the other screens), new game, leave.
+  - `spectator.e2e.ts` (desktop Chromium only): a fourth person joins mid-game = spectator (no cards, no bid buttons),
+    the players see them, they follow every move of the first hand, queue ("în coadă" seen by the players), see the game
+    stop, and the new game makes them a player.
+  - `mobile.e2e.ts` (iPhone only): 6 players with 10-character nicknames, no horizontal scroll on home / lobby / game,
+    cards and bid buttons >= 24 px, a touch tap places a bid seen live by the other phones.
+  Rooms are `e2e-test-ui-…` (no full game, so nothing reaches the leaderboard); a leftover is deleted with the service
+  key from the same repo secrets.
+- Playwright files are `*.e2e.ts`, never `*.spec.ts` / `*.test.ts` (Vitest would pick those up).
+- The UI tests find elements by `data-testid`: `home-submit`, `join-submit`, `start-game`, `player-list`, `hand-info`
+  (with `data-progress` = `progress()` in `Game.tsx`), `turn-badge`, `bid-picker`, `my-hand`, `game-table`, `last-hand`,
+  `game-over`, `new-round`, `leave`, `spectator-banner`, `queue-toggle`, `spectator-list`. Renaming or removing one
+  breaks `tests/ui`.

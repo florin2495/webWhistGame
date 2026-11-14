@@ -1,0 +1,56 @@
+name: E2E
+
+# Manual only (Actions tab > Run workflow, or `gh workflow run e2e.yml --ref main [-f base_url=...] [-f multi_players=...]`).
+# Drives the real API against the production DB: run it on main after the Vercel deploy of that version finished
+# (it checks the deployed client JS contains the package.json version).
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: "Base URL including /whist"
+        required: true
+        default: "https://games.hailatat.icu/whist"
+      multi_players:
+        description: "Player counts for scripts/e2e-multi.mjs, space separated (empty = skip it)"
+        required: false
+        default: "4 5 6"
+      multi_hands:
+        description: "Hands e2e-multi plays per game (a number, or all = the whole game, slow with 6)"
+        required: false
+        default: "4"
+
+permissions:
+  contents: read
+
+# Never two runs at once against the production DB.
+concurrency:
+  group: e2e
+  cancel-in-progress: false
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      BASE_URL: ${{ inputs.base_url }}
+      # Only for the cleanup safety net (deletes leftover e2e-test-* rooms and the e2e leaderboard rows) and the
+      # leaderboard checks.
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      # The scripts use only Node built-ins: no npm ci needed.
+      - name: E2E (3 players, whole game, then 5 players)
+        run: node scripts/e2e.mjs "$BASE_URL"
+      - name: E2E multi (4-6 players)
+        if: (success() || failure()) && inputs.multi_players != ''
+        env:
+          MULTI_PLAYERS: ${{ inputs.multi_players }}
+          MULTI_HANDS: ${{ inputs.multi_hands }}
+        run: |
+          fail=0
+          for n in $MULTI_PLAYERS; do node scripts/e2e-multi.mjs "$BASE_URL" "$n" "${MULTI_HANDS:-4}" || fail=1; done
+          exit $fail

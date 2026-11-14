@@ -86,7 +86,7 @@ export function Home() {
           Whist <span className="text-rose-600">♥</span>
           <span>♠</span>
         </h1>
-        <p className="mt-1 text-sm text-zinc-500">Whist-ul de la masă, cu 2-3 prieteni, pe telefon.</p>
+        <p className="mt-1 text-sm text-zinc-500">Whist-ul de la masă, cu 2-5 prieteni, pe telefon.</p>
       </header>
 
       <RejoinCards onRejoin={(c) => router.push(`/room/${c}`)} />
@@ -156,7 +156,7 @@ export function Home() {
           {tab === "create" && <RulesForm value={settings} onChange={setSettings} />}
 
           <ErrorText>{error}</ErrorText>
-          <Button type="submit" disabled={busy}>
+          <Button type="submit" disabled={busy} data-testid="home-submit">
             {busy ? "Se încarcă…" : tab === "create" ? "Creează camera" : "Intră"}
           </Button>
         </form>

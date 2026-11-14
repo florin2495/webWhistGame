@@ -97,7 +97,7 @@ export function PlayerList({ state, token, refresh }: { state: RoomState; token:
   return (
     <>
       {canReorder && <p className="mb-1 text-xs text-zinc-500">Ordinea de joc: primul din listă deschide. Mută cu săgețile.</p>}
-      <ul className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
+      <ul className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800" data-testid="player-list">
         {players.map((p, i) => (
           <li key={p.id} className="flex items-center justify-between gap-2 py-2">
             <span className="flex min-w-0 items-center gap-2">

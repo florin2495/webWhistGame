@@ -147,7 +147,8 @@ export function Game({
 
   return (
     <>
-      <Panel className="py-3">
+      {/* data-progress: how far the game is (see progress()); the UI tests wait for every screen to show the same value. */}
+      <Panel className="py-3" data-testid="hand-info" data-progress={String(progress(g))}>
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase text-zinc-500">
@@ -178,7 +179,7 @@ export function Game({
       <Seats g={g} state={state} token={token} refresh={refresh} />
 
       {lastResult && (
-        <p className="rounded-lg bg-zinc-100 px-3 py-2 text-center text-xs text-zinc-600 dark:bg-zinc-900 dark:text-zinc-400">
+        <p className="rounded-lg bg-zinc-100 px-3 py-2 text-center text-xs text-zinc-600 dark:bg-zinc-900 dark:text-zinc-400" data-testid="last-hand">
           Mâna trecută ({lastResult.handSize}):{" "}
           {lastResult.points.map((p, i) => (
             <span key={i} className="mr-2 inline-block">
@@ -200,6 +201,7 @@ export function Game({
             myTurn ? "bg-indigo-600 text-white" : "bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
           }`}
           aria-live="polite"
+          data-testid="turn-badge"
         >
           {myTurn ? "Rândul tău" : `Rândul lui ${turnName}`}
         </p>
@@ -217,7 +219,7 @@ export function Game({
               </span>
             )}
           </div>
-          <div className="flex flex-wrap justify-center gap-1.5 pt-2">
+          <div className="flex flex-wrap justify-center gap-1.5 pt-2" data-testid="my-hand">
             {g.myHand.map((c) => {
               const playable = myTurn && g.phase === "playing" && g.legal.includes(c);
               return (
@@ -345,7 +347,7 @@ function Table({ g }: { g: PublicGame }) {
   };
 
   return (
-    <section className="rounded-xl bg-emerald-800 p-2 text-white shadow-inner dark:bg-emerald-950">
+    <section className="rounded-xl bg-emerald-800 p-2 text-white shadow-inner dark:bg-emerald-950" data-testid="game-table">
       <div
         className="grid items-center gap-1.5"
         style={{
@@ -378,7 +380,7 @@ function BidPicker({ g, busy, onBid }: { g: PublicGame; busy: boolean; onBid: (b
   const options = Array.from({ length: g.handSize + 1 }, (_, i) => i);
   const forbidden = options.find((o) => !g.allowedBids.includes(o));
   return (
-    <Panel>
+    <Panel data-testid="bid-picker">
       <div className="grid grid-cols-5 gap-2">
         {options.map((o) => (
           <Button
@@ -403,7 +405,7 @@ function BidPicker({ g, busy, onBid }: { g: PublicGame; busy: boolean; onBid: (b
 
 function GameOver({ g, isHost, busy, onNewGame }: { g: PublicGame; isHost: boolean; busy: boolean; onNewGame: () => void }) {
   return (
-    <Panel className="text-center">
+    <Panel className="text-center" data-testid="game-over">
       {g.abortedBy ? (
         <>
           <p className="text-lg font-black">Joc oprit</p>
@@ -419,7 +421,7 @@ function GameOver({ g, isHost, busy, onNewGame }: { g: PublicGame; isHost: boole
         </>
       )}
       {isHost ? (
-        <Button className="mt-3 w-full" onClick={onNewGame} disabled={busy}>
+        <Button className="mt-3 w-full" onClick={onNewGame} disabled={busy} data-testid="new-round">
           Joc nou
         </Button>
       ) : (

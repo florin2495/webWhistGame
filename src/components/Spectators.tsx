@@ -35,9 +35,9 @@ export function Spectators({ state, token, refresh }: { state: RoomState; token:
   return (
     <Card className="flex flex-col gap-3">
       {isSpectator && (
-        <div className="rounded-lg bg-indigo-50 p-3 text-center dark:bg-indigo-950">
+        <div className="rounded-lg bg-indigo-50 p-3 text-center dark:bg-indigo-950" data-testid="spectator-banner">
           <p className="text-sm font-semibold">Ești spectator: vezi jocul, dar nu poți juca.</p>
-          <Button className="mt-2 w-full" variant={me.queued ? "secondary" : "primary"} onClick={() => void toggle()} disabled={busy}>
+          <Button className="mt-2 w-full" variant={me.queued ? "secondary" : "primary"} onClick={() => void toggle()} disabled={busy} data-testid="queue-toggle">
             {me.queued ? `Ești în coadă (#${queuePos}). Renunță` : "Intră la runda următoare"}
           </Button>
         </div>
@@ -50,7 +50,7 @@ export function Spectators({ state, token, refresh }: { state: RoomState; token:
               {spectators.length}/{MAX_SPECTATORS}
             </span>
           </h2>
-          <ul className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
+          <ul className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800" data-testid="spectator-list">
             {spectators.map((s) => (
               <li key={s.id} className="flex items-center justify-between gap-2 py-2">
                 <span className="flex min-w-0 items-center gap-2">
