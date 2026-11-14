@@ -3,6 +3,8 @@ name: Check code
 # Manual only (Actions tab > Run workflow, or `gh workflow run check.yml --ref main`).
 on:
   workflow_dispatch:
+  push: # TEMP-BRANCH-TRIGGER (removed before merging to main)
+    branches: [fix/abandoned-rooms]
 
 permissions:
   contents: read
