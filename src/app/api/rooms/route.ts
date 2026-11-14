@@ -2,15 +2,16 @@ import { connection } from "next/server";
 import { hashDeviceId, hashPassword, hashToken, newPlayerToken, newRoomCode } from "@/lib/server/crypto";
 import { db, T } from "@/lib/server/db";
 import { cleanText, fail, handle, isUniqueViolation, readJson } from "@/lib/server/http";
-import { cleanupExpiredRooms, parseSettings } from "@/lib/server/room";
+import { cleanupAbandonedRooms, cleanupExpiredRooms, parseSettings } from "@/lib/server/room";
 import type { RoomListItem } from "@/lib/types";
 import { NICKNAME_MAX, type Settings } from "@/lib/whist";
 
 // GET /api/rooms - public list of all open rooms (lobby, playing, finished; not idle). Newcomers to a running game spectate.
+// Loading the list ("Intră în cameră") first sweeps abandoned rooms: no member seen and no activity for 120 s.
 export async function GET() {
   await connection(); // always request-time, never prerendered at build
   return handle(async () => {
-    await cleanupExpiredRooms();
+    await Promise.all([cleanupExpiredRooms(), cleanupAbandonedRooms()]);
     const { data, error } = await db()
       .from(T.rooms)
       .select("code, name, status, settings, password_hash, last_activity_at, players:whist_players!whist_players_room_id_fkey(role)")

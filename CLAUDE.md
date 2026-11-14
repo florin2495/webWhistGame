@@ -43,6 +43,13 @@ Rules for schema changes:
   the seat has been unseen for 45 s, also mid-game. `/state` exposes only a derived `connected` flag.
 - Realtime: Broadcast topic `whist:room:<uuid>` carries no data, clients re-fetch `/state`; 15 s polling fallback.
 
+## Abandoned rooms (120 s)
+- `GET /api/rooms` (the room list behind "Intră în cameră") also runs `cleanupAbandonedRooms` (`src/lib/server/room.ts`):
+  every room in ANY status (also `playing`) whose `last_activity_at` is older than `ROOM_ABANDONED_MS` (120 s, `whist.ts`)
+  and with no member (player or spectator, both `whist_players` rows) `last_seen_at` within 120 s is deleted (members cascade).
+  Open room pages keep both fresh (`/state` polls every 15 s, touches `last_seen_at` ≤ 10 s and `last_activity_at` ≤ 20 s),
+  so only rooms nobody has open disappear. The 10 / 60-minute idle expiry stays too.
+
 ## Spectators, order, leaderboard
 - Joining a running game (or a full lobby) makes you a spectator (max 16, `lib/spectators.ts`); `POST /queue` toggles
   "Intră la runda următoare"; `new-round` promotes queued spectators in queue order, rotates the opener and keeps the host's order.
