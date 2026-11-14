@@ -6,7 +6,7 @@ import { isUniqueViolation } from "./http";
 const GAME = process.env.LEADERBOARD_GAME || "whist";
 
 /** player_key = nickname lowercased and trimmed (no accounts: same nickname = same person). */
-export const playerKey = (nickname: string) => nickname.trim().toLowerCase();
+export const playerKey = (nickname: string) => nickname.trim().toLowerCase().slice(0, 40);
 
 /**
  * Reports a finished game to the hub's shared leaderboard (hub_leaderboard / hub_leaderboard_rounds, owned by
@@ -32,7 +32,7 @@ export async function reportLeaderboard(roomCode: string, roundNo: number, names
           {
             game: GAME,
             player_key: key,
-            display_name: name.trim(),
+            display_name: name.trim().slice(0, 40),
             wins: (data?.wins ?? 0) + (winners.includes(seat) ? 1 : 0),
             games: (data?.games ?? 0) + 1,
             updated_at: new Date().toISOString(),
