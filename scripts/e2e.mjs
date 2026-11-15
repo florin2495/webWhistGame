@@ -1,7 +1,7 @@
 // End-to-end test of the Whist API with real players. Usage: node scripts/e2e.mjs [baseUrl incl. /whist]
 // HTTP checks (page, assets, version, manifest, icons), then a whole 3-player game (1-8-1) with spectators, reorder and
 // every rule check, then a 5-player game that is stopped by an enforced kick.
-// Rooms are named "e2e-test-…" and nicknames start with "e2e" (the full game is reported to the hub leaderboard).
+// Rooms are named "e2e-test-…" and nicknames start with "e2e" (test rooms are never reported to the hub leaderboard).
 // At the end it deletes its rooms (leave as every player, then a DB delete of leftovers) and its leaderboard rows,
 // with the service key: env NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY, else .env.local. Never sends feedback.
 import { randomUUID } from "node:crypto";
@@ -343,10 +343,7 @@ async function main() {
   const sb = supabase();
   if (sb) {
     const rounds = await sbGet(sb, `hub_leaderboard_rounds?game=eq.whist&room_code=eq.${code}&select=round_no`);
-    check(Array.isArray(rounds) && rounds.length === 1 && rounds[0].round_no === 1, "finished game reported to the hub leaderboard once");
-    const keys = P.map((p) => p.name.toLowerCase()).join(",");
-    const rows = await sbGet(sb, `hub_leaderboard?game=eq.whist&player_key=in.(${keys})&select=player_key,games,wins`);
-    check(Array.isArray(rows) && rows.length === 3 && rows.every((x) => x.games >= 1), "leaderboard rows for the 3 players");
+    check(Array.isArray(rounds) && rounds.length === 0, "finished e2e-test room NOT reported to the hub leaderboard");
   } else console.log("  - leaderboard check skipped (no Supabase env)");
 
   console.log("New round: queued spectator promoted, 5 players");

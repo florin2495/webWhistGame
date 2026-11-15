@@ -8,13 +8,25 @@ const GAME = process.env.LEADERBOARD_GAME || "whist";
 /** player_key = nickname lowercased and trimmed (no accounts: same nickname = same person). */
 export const playerKey = (nickname: string) => nickname.trim().toLowerCase().slice(0, 40);
 
+/** Rooms created by the e2e tests (scripts/e2e*.mjs, tests/ui) never reach the shared leaderboard. */
+export function isTestRoom(roomName: string): boolean {
+  return roomName.startsWith("e2e-test-");
+}
+
 /**
  * Reports a finished game to the hub's shared leaderboard (hub_leaderboard / hub_leaderboard_rounds, owned by
  * florin2495/hailataticu-hub): +1 games for every player, +1 wins for the winners. Idempotent per
  * (game, room code, round): the round row is inserted first and a duplicate means "already counted".
- * Best effort: a failure is logged and never breaks the move that ended the game.
+ * Best effort: a failure is logged and never breaks the move that ended the game. Test rooms (isTestRoom) are skipped.
  */
-export async function reportLeaderboard(roomCode: string, roundNo: number, names: string[], winners: number[]): Promise<void> {
+export async function reportLeaderboard(
+  room: { code: string; name: string; round: number },
+  names: string[],
+  winners: number[],
+): Promise<void> {
+  if (isTestRoom(room.name)) return;
+  const roomCode = room.code;
+  const roundNo = room.round;
   try {
     const claim = await db().from("hub_leaderboard_rounds").insert({ game: GAME, room_code: roomCode, round_no: roundNo });
     if (claim.error) {

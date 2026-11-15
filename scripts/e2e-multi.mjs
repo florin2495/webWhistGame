@@ -1,7 +1,7 @@
 // E2E for 4-6 players: full lobby -> spectator, host reorder, seats, deck size, late spectator (no private data),
 // queue, a few hands (or the whole game), then new-round promoting the queued spectator.
 //   node scripts/e2e-multi.mjs [baseUrl incl. /whist] [players 3-6, default 5] [hands to play, default 4, or "all"]
-// "all" plays the whole game and checks the hub leaderboard report (slow with 6 players: ~900 moves).
+// "all" plays the whole game and checks that the e2e-test room is NOT reported to the hub leaderboard (slow with 6 players: ~900 moves).
 // Otherwise a seated player leaves after the hands (the game stops, nothing is reported to the leaderboard).
 // Rooms are named "e2e-test-multi-…", nicknames start with "e2e". At the end the room is closed (everyone leaves) and,
 // as a safety net, deleted in the DB together with this run's leaderboard rows (service key: env, else .env.local).
@@ -149,10 +149,7 @@ async function main() {
     const sb = supabase();
     if (sb) {
       const rounds = await (await fetch(`${sb.url}/hub_leaderboard_rounds?game=eq.whist&room_code=eq.${code}&select=round_no`, { headers: sb.headers })).json();
-      check(Array.isArray(rounds) && rounds.length === 1, "game reported to the hub leaderboard once");
-      const keys = ps.map((p) => p.name.toLowerCase()).join(",");
-      const lb = await (await fetch(`${sb.url}/hub_leaderboard?game=eq.whist&player_key=in.(${keys})&select=player_key,games`, { headers: sb.headers })).json();
-      check(Array.isArray(lb) && lb.length === n && lb.every((x) => x.games >= 1), `leaderboard: ${n} player rows`);
+      check(Array.isArray(rounds) && rounds.length === 0, "e2e-test room NOT reported to the hub leaderboard");
     } else console.log("  - leaderboard check skipped (no Supabase env)");
   } else {
     // A seated non-host player leaves: Whist cannot go on with an empty seat, the game stops for everyone.

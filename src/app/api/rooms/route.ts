@@ -7,7 +7,8 @@ import type { RoomListItem } from "@/lib/types";
 import { NICKNAME_MAX, type Settings } from "@/lib/whist";
 
 // GET /api/rooms - public list of all open rooms (lobby, playing, finished; not idle). Newcomers to a running game spectate.
-// Loading the list ("Intră în cameră") first sweeps abandoned rooms: no member seen and no activity for 120 s.
+// Loading the list ("Intră în cameră") first sweeps abandoned rooms: no member seen and no activity for 600 s
+// (6 hours for a game in progress).
 export async function GET() {
   await connection(); // always request-time, never prerendered at build
   return handle(async () => {
@@ -60,7 +61,7 @@ export async function POST(req: Request) {
     const token = newPlayerToken();
     const { data: player, error: playerError } = await db()
       .from(T.players)
-      .insert({ room_id: room.id, nickname, token_hash: hashToken(token), device_hash: hashDeviceId(body.deviceId), is_host: true })
+      .insert({ room_id: room.id, nickname, token_hash: hashToken(token), device_hash: hashDeviceId(body.deviceId), is_host: true, seat: 0 })
       .select("id")
       .single();
     if (playerError) throw playerError;

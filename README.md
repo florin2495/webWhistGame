@@ -26,8 +26,8 @@ Adresă: **https://whist.hailatat.icu**
 ### Extra
 - Foaia de scor clasică (luat/spus și totalul pe fiecare mână), levata trecută afișată pe masă.
 - Dacă un jucător pleacă sau e scos în timpul jocului, jocul se oprește: whist nu poate continua cu un loc gol.
-- Camere: lobby/terminate se închid după 2 minute în care nimeni nu le are deschise; un joc în desfășurare
-  pe care nu-l mai are nimeni deschis se închide după 60 de minute.
+- Camere: lobby/terminate se închid după 10 minute în care nimeni nu le are deschise; un joc în desfășurare
+  pe care nu-l mai are nimeni deschis se închide după 6 ore.
 - Setări pe dispozitiv: confirmare la jucarea cărții, vibrație când e rândul tău.
 
 ## Arhitectură
@@ -37,7 +37,7 @@ Adresă: **https://whist.hailatat.icu**
 - Starea jocului (inclusiv cărțile fiecăruia) e un jsonb în `whist_rooms.game`, scris cu lock optimist pe `version`.
   `/state` trimite fiecărui jucător doar cărțile lui.
 - Tabelele au RLS activat fără policy și `revoke` pentru `anon`/`authenticated`.
-- Live: Supabase Realtime Broadcast pe `whist:room:<uuid>` (semnal fără date) + polling la 15 s.
+- Live: Supabase Realtime Broadcast pe `whist:room:<uuid>` (semnal fără date) + polling la 60 s.
 
 ## Setup
 

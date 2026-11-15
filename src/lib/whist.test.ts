@@ -8,12 +8,15 @@ import {
   handPoints,
   handSizes,
   isRoomAbandoned,
+  isRoomExpired,
   legalCards,
   newGame,
   nextStreak,
   placeBid,
   playCard,
+  PLAYING_IDLE_MINUTES,
   ROOM_ABANDONED_MS,
+  ROOM_ABANDONED_PLAYING_MS,
   RuleError,
   trickWinner,
 } from "./whist";
@@ -192,18 +195,41 @@ describe("full game", () => {
   }
 });
 
-describe("abandoned rooms (any status)", () => {
+describe("abandoned rooms", () => {
   const now = Date.parse("2026-11-14T12:00:00Z");
   const sec = (s: number) => new Date(now - s * 1000).toISOString();
-  it(`is abandoned after ${ROOM_ABANDONED_MS / 1000} s with nobody seen`, () => {
-    expect(isRoomAbandoned(sec(121), [sec(300), sec(200)], now)).toBe(true);
-    expect(isRoomAbandoned(sec(121), [], now)).toBe(true);
-    expect(isRoomAbandoned(sec(121), [null], now)).toBe(true);
+  for (const status of ["lobby", "finished"]) {
+    it(`${status}: abandoned after ${ROOM_ABANDONED_MS / 1000} s with nobody seen`, () => {
+      expect(isRoomAbandoned(status, sec(601), [sec(900), sec(700)], now)).toBe(true);
+      expect(isRoomAbandoned(status, sec(601), [], now)).toBe(true);
+      expect(isRoomAbandoned(status, sec(601), [null], now)).toBe(true);
+    });
+    it(`${status}: kept while the last activity is recent`, () => {
+      expect(isRoomAbandoned(status, sec(599), [], now)).toBe(false);
+    });
+    it(`${status}: kept while any player or spectator was seen recently`, () => {
+      expect(isRoomAbandoned(status, sec(3000), [sec(3000), sec(30)], now)).toBe(false);
+    });
+  }
+  it("playing: kept for up to 6 hours of silence", () => {
+    expect(ROOM_ABANDONED_PLAYING_MS).toBe(6 * 3600_000);
+    expect(isRoomAbandoned("playing", sec(601), [sec(601)], now)).toBe(false);
+    expect(isRoomAbandoned("playing", sec(6 * 3600 - 1), [], now)).toBe(false);
+    expect(isRoomAbandoned("playing", sec(6 * 3600 + 1), [sec(6 * 3600 + 1)], now)).toBe(true);
   });
-  it("is kept while the last activity is recent", () => {
-    expect(isRoomAbandoned(sec(119), [], now)).toBe(false);
+});
+
+describe("idle expiry", () => {
+  const now = Date.parse("2026-11-14T12:00:00Z");
+  const min = (m: number) => new Date(now - m * 60_000).toISOString();
+  it("lobby / finished close after 10 minutes", () => {
+    expect(isRoomExpired("lobby", min(9), now)).toBe(false);
+    expect(isRoomExpired("finished", min(11), now)).toBe(true);
   });
-  it("is kept while any player or spectator was seen recently", () => {
-    expect(isRoomAbandoned(sec(600), [sec(600), sec(30)], now)).toBe(false);
+  it("a running game closes only after 6 hours", () => {
+    expect(PLAYING_IDLE_MINUTES).toBe(360);
+    expect(isRoomExpired("playing", min(61), now)).toBe(false);
+    expect(isRoomExpired("playing", min(359), now)).toBe(false);
+    expect(isRoomExpired("playing", min(361), now)).toBe(true);
   });
 });

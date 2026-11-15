@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { api } from "@/lib/client/api";
 import type { RoomState } from "@/lib/types";
-import { MAX_SPECTATORS } from "@/lib/spectators";
 import { KickBadge } from "./KickCountdown";
 import { KickButton, OfflineBadge } from "./PlayerList";
 import { Button, Card, ErrorText } from "./ui";
@@ -46,9 +45,7 @@ export function Spectators({ state, token, refresh }: { state: RoomState; token:
         <div>
           <h2 className="mb-1 flex items-baseline justify-between font-bold">
             Spectatori
-            <span className="text-sm font-normal text-zinc-500">
-              {spectators.length}/{MAX_SPECTATORS}
-            </span>
+            <span className="text-sm font-normal text-zinc-500">{spectators.length}</span>
           </h2>
           <ul className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800" data-testid="spectator-list">
             {spectators.map((s) => (

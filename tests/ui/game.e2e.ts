@@ -1,6 +1,6 @@
 // Scenario 1: three real browsers (Whist needs 3 players) play a live game on the deployed site: create, join by link,
 // deal, bid and play the first 4 hands (three 1-card hands and a 2-card hand); after every move each screen must show
-// the same progress within 5 s without a reload (Realtime, well under the 15 s polling fallback). Then a player leaves
+// the same progress within 5 s without a reload (Realtime, well under the 60 s polling fallback). Then a player leaves
 // (the game stops for everyone), the host starts a new game followed live, everyone leaves. Runs on every project.
 import { expect, test } from "@playwright/test";
 import { createAndJoin, expectSynced, leaveAll, playHands, REALTIME_MS, startGame, withPlayers } from "./helpers";

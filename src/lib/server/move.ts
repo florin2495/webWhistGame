@@ -39,7 +39,7 @@ export function moveHandler(
       ...(next.phase === "over" ? { status: "finished" as const } : {}),
     });
     if (next.phase === "over" && !next.abortedBy) {
-      await reportLeaderboard(room.code, room.round, game.names, leaders(next.scores));
+      await reportLeaderboard(room, game.names, leaders(next.scores));
     }
     await notifyRoom(room.id, kind);
     // Enough for the mover to update its own screen without re-fetching /state.

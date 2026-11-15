@@ -7,6 +7,9 @@ const A = "a".repeat(64);
 const B = "b".repeat(64);
 
 describe("isConnected", () => {
+  it("waits 301 s before a seat counts as disconnected", () => {
+    expect(DISCONNECT_MS).toBe(301_000);
+  });
   it("is true until DISCONNECT_MS has passed", () => {
     expect(isConnected(at, T0)).toBe(true);
     expect(isConnected(at, T0 + DISCONNECT_MS - 1)).toBe(true);
@@ -52,6 +55,6 @@ describe("seatClaim", () => {
 
 describe("seatBusyMessage", () => {
   it("names the player and the wait", () => {
-    expect(seatBusyMessage("Ana")).toBe("Ana e conectat acum. Dacă ești tu, închide celălalt tab sau așteaptă 45 de secunde.");
+    expect(seatBusyMessage("Ana")).toBe("Ana e conectat acum. Dacă ești tu, închide celălalt tab sau așteaptă 301 de secunde.");
   });
 });
