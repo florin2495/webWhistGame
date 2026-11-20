@@ -406,9 +406,14 @@ export function playCard(g: GameState, seat: number, c: Card, random: () => numb
   return { ...deal({ ...next, handIndex: next.handIndex + 1 }, random), lastTrick };
 }
 
-/** Seats with the highest score (more than one on a tie). */
+/**
+ * Winning seats. House rule: whoever ends on exactly 0 points wins (all of them if several), and then the top
+ * score does not win. With nobody on 0, the highest score wins (more than one on a tie).
+ */
 export function leaders(scores: number[]): number[] {
   if (scores.length === 0) return [];
+  const zero = scores.flatMap((s, i) => (s === 0 ? [i] : []));
+  if (zero.length > 0) return zero;
   const top = Math.max(...scores);
   return scores.flatMap((s, i) => (s === top ? [i] : []));
 }

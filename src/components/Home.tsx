@@ -172,6 +172,7 @@ export function Home() {
           <li>Răspunzi la culoare. Dacă nu ai, tai cu atu (dacă e activă tăierea obligatorie), altfel dai orice.</li>
           <li>Dacă iei exact cât ai spus: 5 + numărul spus. Altfel pierzi diferența.</li>
           <li>Bonus: +10 la 5 mâini nimerite la rând, −10 la 5 ratate la rând.</li>
+          <li>Câștigă cine termină cu exact 0 puncte (toți, dacă sunt mai mulți). Dacă nimeni n-are 0, câștigă scorul cel mai mare.</li>
         </ol>
       </details>
     </main>

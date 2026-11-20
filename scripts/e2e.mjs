@@ -138,8 +138,10 @@ function verifyHistory(g, bonusOn) {
     }
   });
   if (JSON.stringify(totals) !== JSON.stringify(g.scores)) bad("final scores");
+  // House rule: exactly 0 points wins (all on 0); with nobody on 0, the highest score wins.
+  const zero = totals.flatMap((t, i) => (t === 0 ? [i] : []));
   const top = Math.max(...totals);
-  const winners = totals.flatMap((t, i) => (t === top ? [i] : []));
+  const winners = zero.length > 0 ? zero : totals.flatMap((t, i) => (t === top ? [i] : []));
   if (JSON.stringify(winners) !== JSON.stringify(g.winners)) bad("winners");
   return { ok: why.length === 0, why: why.slice(0, 5).join(", ") };
 }

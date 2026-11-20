@@ -9,6 +9,7 @@ import {
   handSizes,
   isRoomAbandoned,
   isRoomExpired,
+  leaders,
   legalCards,
   newGame,
   nextStreak,
@@ -231,5 +232,19 @@ describe("idle expiry", () => {
     expect(isRoomExpired("playing", min(61), now)).toBe(false);
     expect(isRoomExpired("playing", min(359), now)).toBe(false);
     expect(isRoomExpired("playing", min(361), now)).toBe(true);
+  });
+});
+
+describe("winners", () => {
+  it("highest score wins when nobody ends on 0", () => {
+    expect(leaders([12, 30, -4])).toEqual([1]);
+    expect(leaders([30, 30, 5])).toEqual([0, 1]);
+  });
+  it("ending on exactly 0 wins, even over a higher score", () => {
+    expect(leaders([45, 0, 12])).toEqual([1]);
+    expect(leaders([0, 20, 0, -3])).toEqual([0, 2]);
+  });
+  it("no players, no winners", () => {
+    expect(leaders([])).toEqual([]);
   });
 });
